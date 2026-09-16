@@ -12,6 +12,7 @@ class MonthlyReportScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activePeriod = ref.watch(activePeriodProvider);
     final summary = ref.watch(monthlySummaryProvider);
+    final isMasked = ref.watch(isBalanceMaskedProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -32,22 +33,45 @@ class MonthlyReportScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Posisi Finansial Berkelanjutan (Continuous Position)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Posisi Finansial Berkelanjutan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isMasked
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: const Color(0xFF64748B),
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: isMasked ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                          onPressed: () {
+                            ref.read(isBalanceMaskedProvider.notifier).toggleMask();
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
-                    _buildReportRow('Opening Balance (Bawaan Bulan Lalu)', summary.openingBalance),
-                    _buildReportRow('+ Total Income Bulan Ini', summary.totalIncome, color: Colors.green),
+                    _buildReportRow('Opening Balance (Bawaan Bulan Lalu)', summary.openingBalance, isMasked: isMasked),
+                    _buildReportRow('+ Total Income Bulan Ini', summary.totalIncome, color: Colors.green, isMasked: isMasked),
                     const Divider(),
-                    _buildReportRow('= Total Available Funds', summary.totalAvailable, isBold: true),
-                    _buildReportRow('- Total Pengeluaran Aktual', summary.totalActualExpenses, color: Colors.red),
+                    _buildReportRow('= Total Available Funds', summary.totalAvailable, isBold: true, isMasked: isMasked),
+                    _buildReportRow('- Total Pengeluaran Aktual', summary.totalActualExpenses, color: Colors.red, isMasked: isMasked),
                     const Divider(),
-                    _buildReportRow('= Closing Balance (Saldo Akhir)', summary.closingBalance, isBold: true, color: const Color(0xFF00A884)),
+                    _buildReportRow('= Closing Balance (Saldo Akhir)', summary.closingBalance, isBold: true, color: const Color(0xFF00A884), isMasked: isMasked),
                   ],
                 ),
               ),
@@ -60,63 +84,68 @@ class MonthlyReportScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Budget vs Actual Variance',
+                      'Laporan Variansi Anggaran per Kategori',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF0F172A),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(2),
-                        1: FlexColumnWidth(1.5),
-                        2: FlexColumnWidth(1.5),
-                      },
-                      children: [
-                        const TableRow(
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 4),
-                              child: Text('Kategori', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 4),
-                              child: Text('Alokasi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 4),
-                              child: Text('Aktual', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                        ...summary.categoryStatuses.map((cs) {
-                          return TableRow(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
-                                child: Text(cs.category.name, style: const TextStyle(fontSize: 12)),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
-                                child: Text(CurrencyFormatter.formatShort(cs.allocated), style: const TextStyle(fontSize: 12)),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
-                                child: Text(
-                                  CurrencyFormatter.formatShort(cs.actual),
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columnSpacing: 16,
+                        columns: const [
+                          DataColumn(label: Text('Kategori')),
+                          DataColumn(label: Text('Alokasi')),
+                          DataColumn(label: Text('Aktual')),
+                          DataColumn(label: Text('Sisa')),
+                          DataColumn(label: Text('Status')),
+                        ],
+                        rows: summary.categoryStatuses.map((stat) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(stat.category.name)),
+                              DataCell(Text(CurrencyFormatter.format(stat.allocated))),
+                              DataCell(Text(CurrencyFormatter.format(stat.actual))),
+                              DataCell(
+                                Text(
+                                  CurrencyFormatter.format(stat.remaining),
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: cs.status == 'Over Budget' ? Colors.red : Colors.black,
-                                    fontWeight: cs.status == 'Over Budget' ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: FontWeight.bold,
+                                    color: stat.remaining >= 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: stat.remaining >= 0
+                                        ? const Color(0xFFDCFCE7)
+                                        : const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    stat.status,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: stat.remaining >= 0
+                                          ? const Color(0xFF166534)
+                                          : const Color(0xFF991B1B),
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           );
-                        }),
-                      ],
+                        }).toList(),
+                      ),
                     ),
                   ],
                 ),
@@ -128,7 +157,8 @@ class MonthlyReportScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildReportRow(String label, int amount, {bool isBold = false, Color? color}) {
+  Widget _buildReportRow(String label, int amount,
+      {bool isBold = false, Color? color, bool isMasked = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -147,7 +177,7 @@ class MonthlyReportScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            CurrencyFormatter.format(amount),
+            isMasked ? 'Rp ••••••••' : CurrencyFormatter.format(amount),
             style: TextStyle(
               fontSize: 13,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,

@@ -271,6 +271,8 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildSummaryCard(MonthlySummary summary) {
+    final isMasked = ref.watch(isBalanceMaskedProvider);
+
     return CustomCard(
       padding: const EdgeInsets.all(12),
       backgroundColor: Colors.white,
@@ -291,13 +293,38 @@ class DashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Total Dana Tersedia (Total Available)',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Total Dana Tersedia (Total Available)',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        isMasked
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: isMasked ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                      onPressed: () {
+                        ref.read(isBalanceMaskedProvider.notifier).toggleMask();
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  CurrencyFormatter.format(summary.totalAvailable),
+                  isMasked
+                      ? 'Rp ••••••••'
+                      : CurrencyFormatter.format(summary.totalAvailable),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -310,7 +337,7 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Opening: ${CurrencyFormatter.format(summary.openingBalance)}',
+                        'Opening: ${isMasked ? "Rp ••••••••" : CurrencyFormatter.format(summary.openingBalance)}',
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Colors.white, fontSize: 11),
                       ),
@@ -318,7 +345,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Income: ${CurrencyFormatter.format(summary.totalIncome)}',
+                        'Income: ${isMasked ? "Rp ••••••••" : CurrencyFormatter.format(summary.totalIncome)}',
                         textAlign: TextAlign.end,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Colors.white, fontSize: 11),

@@ -93,6 +93,7 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
     final categories = ref.watch(categoryListProvider).where((c) => c.isActive).toList();
     final templates = ref.watch(templateListProvider);
     final summary = ref.watch(monthlySummaryProvider);
+    final isMasked = ref.watch(isBalanceMaskedProvider);
 
     final liveNominals = _calculateLiveAllocations(summary.totalAvailable, categories);
     final liveTotalAllocated = liveNominals.values.fold<int>(0, (sum, val) => sum + val);
@@ -127,13 +128,38 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Dana Tersedia Bulan Ini',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Dana Tersedia Bulan Ini',
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isMasked
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: isMasked ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                          onPressed: () {
+                            ref.read(isBalanceMaskedProvider.notifier).toggleMask();
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      CurrencyFormatter.format(summary.totalAvailable),
+                      isMasked
+                          ? 'Rp ••••••••'
+                          : CurrencyFormatter.format(summary.totalAvailable),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../core/database/hive_service.dart';
 import '../../models/category.dart';
 import 'period_provider.dart';
 import 'income_provider.dart';
@@ -7,6 +7,27 @@ import 'expense_provider.dart';
 import 'allocation_provider.dart';
 import 'category_provider.dart';
 import 'planned_expense_provider.dart';
+
+final isBalanceMaskedProvider = StateNotifierProvider<BalanceMaskNotifier, bool>((ref) {
+  return BalanceMaskNotifier();
+});
+
+class BalanceMaskNotifier extends StateNotifier<bool> {
+  static const String _key = 'is_balance_masked';
+
+  BalanceMaskNotifier() : super(_loadInitialState());
+
+  static bool _loadInitialState() {
+    final val = HiveService.getSetting(_key);
+    return val == 'true';
+  }
+
+  void toggleMask() {
+    final newState = !state;
+    state = newState;
+    HiveService.setSetting(_key, newState.toString());
+  }
+}
 
 class CategoryBudgetStatus {
   final Category category;
