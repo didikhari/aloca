@@ -4,6 +4,10 @@ import '../../core/utils/currency_formatter.dart';
 import '../../models/financial_period.dart';
 import '../../providers/period_provider.dart';
 import '../../providers/summary_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/progress_bar.dart';
 import '../../widgets/status_badge.dart';
@@ -25,21 +29,18 @@ class DashboardScreen extends ConsumerWidget {
     final summary = ref.watch(monthlySummaryProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surfaceWhite,
         elevation: 0,
         title: const Text(
           'Aloca',
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: AppTypography.headingLarge,
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.analytics_outlined, color: Color(0xFF0F172A)),
+            icon: const Icon(Icons.analytics_outlined,
+                color: AppColors.textPrimary),
             onPressed: () {
               Navigator.push(
                 context,
@@ -48,7 +49,8 @@ class DashboardScreen extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF0F172A)),
+            icon: const Icon(Icons.settings_outlined,
+                color: AppColors.textPrimary),
             onPressed: () {
               Navigator.push(
                 context,
@@ -61,27 +63,28 @@ class DashboardScreen extends ConsumerWidget {
       drawer: _buildDrawer(context),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Period Selector Bar
               _buildPeriodSelectorBar(context, ref, activePeriod, periods),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Financial Position Summary Card
-              _buildSummaryCard(summary),
+              _buildSummaryCard(summary, ref),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Unallocated or Overallocated Warning Banner
               if (summary.unallocatedAmount < 0) ...[
                 _buildOverallocatedBanner(summary.unallocatedAmount.abs()),
-                const SizedBox(height: 16),
-              ] else if (summary.unallocatedAmount > 0 && summary.totalAvailable > 0) ...[
+                const SizedBox(height: AppSpacing.lg),
+              ] else if (summary.unallocatedAmount > 0 &&
+                  summary.totalAvailable > 0) ...[
                 _buildUnallocatedBanner(summary.unallocatedAmount),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
               ],
 
               // Category Budget Status Header
@@ -92,11 +95,7 @@ class DashboardScreen extends ConsumerWidget {
                     child: Text(
                       'Alokasi & Progress Kategori',
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
-                      ),
+                      style: AppTypography.sectionTitle,
                     ),
                   ),
                   InkWell(
@@ -108,19 +107,21 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       );
                     },
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    borderRadius: AppRadius.radiusSm,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.xs,
+                      ),
                       child: Row(
                         children: [
-                          Icon(Icons.tune, size: 16, color: Color(0xFF00A884)),
-                          SizedBox(width: 4),
+                          const Icon(Icons.tune,
+                              size: 16, color: AppColors.brandPrimary),
+                          const SizedBox(width: AppSpacing.xs),
                           Text(
                             'Kelola',
-                            style: TextStyle(
-                              color: Color(0xFF00A884),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                            style: AppTypography.bodySecondary.copyWith(
+                              color: AppColors.brandPrimary,
                             ),
                           ),
                         ],
@@ -130,29 +131,34 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
 
               // Dynamic Category Cards List
               if (summary.categoryStatuses.isEmpty) ...[
                 CustomCard(
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: AppSpacing.cardPadding,
                       child: Column(
                         children: [
-                          const Icon(Icons.category_outlined, size: 36, color: Colors.grey),
-                          const SizedBox(height: 8),
-                          const Text('Belum ada alokasi kategori untuk bulan ini.'),
-                          const SizedBox(height: 8),
+                          const Icon(Icons.category_outlined,
+                              size: 36, color: AppColors.textMuted),
+                          const SizedBox(height: AppSpacing.sm),
+                          const Text(
+                            'Belum ada alokasi kategori untuk bulan ini.',
+                            style: AppTypography.bodyPrimary,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00A884),
+                              backgroundColor: AppColors.brandPrimary,
                             ),
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const AllocationManagementScreen(),
+                                  builder: (_) =>
+                                      const AllocationManagementScreen(),
                                 ),
                               );
                             },
@@ -168,7 +174,8 @@ class DashboardScreen extends ConsumerWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: summary.categoryStatuses.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final cs = summary.categoryStatuses[index];
                     return _buildCategoryCard(cs, context);
@@ -182,8 +189,8 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF00A884),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.brandPrimary,
+        foregroundColor: AppColors.textInverse,
         onPressed: () {
           _showAddTransactionDialog(context);
         },
@@ -200,7 +207,10 @@ class DashboardScreen extends ConsumerWidget {
     List<FinancialPeriod> periods,
   ) {
     return CustomCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -236,15 +246,12 @@ class DashboardScreen extends ConsumerWidget {
             },
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, size: 18, color: Color(0xFF00A884)),
-                const SizedBox(width: 8),
+                const Icon(Icons.calendar_today,
+                    size: 18, color: AppColors.brandPrimary),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   activePeriod.displayText,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
+                  style: AppTypography.headingSmall,
                 ),
                 const Icon(Icons.arrow_drop_down),
               ],
@@ -270,12 +277,12 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(MonthlySummary summary) {
+  Widget _buildSummaryCard(MonthlySummary summary, WidgetRef ref) {
     final isMasked = ref.watch(isBalanceMaskedProvider);
 
     return CustomCard(
-      padding: const EdgeInsets.all(12),
-      backgroundColor: Colors.white,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      backgroundColor: AppColors.surfaceWhite,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -284,11 +291,11 @@ class DashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF00A884), Color(0xFF008B74)],
+                colors: [AppColors.brandPrimary, AppColors.brandDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.radiusLg,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +305,7 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Total Dana Tersedia (Total Available)',
+                        'Total Tersedia',
                         style: TextStyle(color: Colors.white70, fontSize: 12),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -313,52 +320,29 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      tooltip: isMasked ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                      tooltip: isMasked
+                          ? 'Tampilkan Nominal'
+                          : 'Sembunyikan Nominal',
                       onPressed: () {
                         ref.read(isBalanceMaskedProvider.notifier).toggleMask();
                       },
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   isMasked
                       ? 'Rp ••••••••'
                       : CurrencyFormatter.format(summary.totalAvailable),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Divider(color: Colors.white30, height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Opening: ${isMasked ? "Rp ••••••••" : CurrencyFormatter.format(summary.openingBalance)}',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 11),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Income: ${isMasked ? "Rp ••••••••" : CurrencyFormatter.format(summary.totalIncome)}',
-                        textAlign: TextAlign.end,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 11),
-                      ),
-                    ),
-                  ],
+                  style: AppTypography.displaySmall,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 12),
-
+          const SizedBox(height: AppSpacing.md),
+          const Divider(),
+          const SizedBox(height: AppSpacing.sm),
           // Stats Grid
           Row(
             children: [
@@ -366,35 +350,37 @@ class DashboardScreen extends ConsumerWidget {
                 child: _buildSummaryStatItem(
                   'Total Dialokasi',
                   CurrencyFormatter.format(summary.totalAllocated),
-                  const Color(0xFF3B82F6),
+                  AppColors.infoBlue,
                 ),
               ),
               Expanded(
                 child: _buildSummaryStatItem(
-                  'Pengeluaran Aktual',
+                  'Pengeluaran',
                   CurrencyFormatter.format(summary.totalActualExpenses),
-                  const Color(0xFFEF4444),
+                  AppColors.expenseRed,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
 
           Row(
             children: [
               Expanded(
                 child: _buildSummaryStatItem(
-                  'Sisa Anggaran Alokasi',
+                  'Sisa Anggaran',
                   CurrencyFormatter.format(summary.remainingBudget),
-                  summary.remainingBudget >= 0 ? const Color(0xFF10B981) : Colors.red,
+                  summary.remainingBudget >= 0
+                      ? AppColors.incomeGreen
+                      : AppColors.expenseRed,
                 ),
               ),
               Expanded(
                 child: _buildSummaryStatItem(
-                  'Closing Balance',
+                  'Saldo Akhir',
                   CurrencyFormatter.format(summary.closingBalance),
-                  const Color(0xFF0F172A),
+                  AppColors.textPrimary,
                 ),
               ),
             ],
@@ -412,18 +398,14 @@ class DashboardScreen extends ConsumerWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+          style: AppTypography.labelSmall,
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
+          style: AppTypography.bodySecondary.copyWith(color: color),
         ),
       ],
     );
@@ -431,20 +413,21 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildUnallocatedBanner(int unallocatedAmount) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF93C5FD)),
+        color: AppColors.infoBgLight,
+        borderRadius: AppRadius.radiusLg,
+        border: Border.all(color: AppColors.infoBlue.withOpacity(0.4)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFF2563EB)),
-          const SizedBox(width: 12),
+          const Icon(Icons.info_outline, color: AppColors.infoBlueDark),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               'Anda masih memiliki sisa dana belum dialokasikan sebesar ${CurrencyFormatter.format(unallocatedAmount)}.',
-              style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 12),
+              style: AppTypography.labelStandard
+                  .copyWith(color: AppColors.infoBlueDark),
             ),
           ),
         ],
@@ -454,20 +437,24 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildOverallocatedBanner(int overallocatedAmount) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        color: AppColors.expenseBgLight,
+        borderRadius: AppRadius.radiusLg,
+        border: Border.all(color: AppColors.expenseRed.withOpacity(0.4)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626)),
-          const SizedBox(width: 12),
+          const Icon(Icons.warning_amber_rounded,
+              color: AppColors.expenseRedDark),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               'Total alokasi Anda melebihi dana tersedia sebesar ${CurrencyFormatter.format(overallocatedAmount)}! Harap sesuaikan alokasi.',
-              style: const TextStyle(color: Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w600),
+              style: AppTypography.labelStandard.copyWith(
+                color: AppColors.expenseRedDark,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -481,11 +468,11 @@ class DashboardScreen extends ConsumerWidget {
       final hex = cs.category.colorHex.replaceAll('#', '');
       cardColor = Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
-      cardColor = const Color(0xFF00A884);
+      cardColor = AppColors.brandPrimary;
     }
 
     return CustomCard(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       onTap: () {
         CategoryPlannedExpensesSheet.show(
           context,
@@ -511,37 +498,32 @@ class DashboardScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         cs.category.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
+                        style: AppTypography.bodySecondary.copyWith(
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               StatusBadge(status: cs.status),
             ],
           ),
-
-          const SizedBox(height: 8),
-
+          const SizedBox(height: AppSpacing.sm),
           CustomProgressBar(
             ratio: cs.usageRatio,
             height: 6.0,
-            color: cs.status == 'Over Budget' ? Colors.red : cardColor,
+            color:
+                cs.status == 'Over Budget' ? AppColors.expenseRed : cardColor,
           ),
-
           const SizedBox(height: 6),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -550,30 +532,33 @@ class DashboardScreen extends ConsumerWidget {
                   'Terpakai: ${CurrencyFormatter.format(cs.actual)} / ${CurrencyFormatter.format(cs.allocated)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  style: AppTypography.labelSmall,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 'Sisa: ${CurrencyFormatter.format(cs.remaining)}',
-                style: TextStyle(
-                  fontSize: 11,
+                style: AppTypography.labelSmall.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: cs.remaining >= 0 ? const Color(0xFF10B981) : Colors.red,
+                  color: cs.remaining >= 0
+                      ? AppColors.incomeGreen
+                      : AppColors.expenseRed,
                 ),
               ),
             ],
           ),
-
           if (cs.totalPlannedItems > 0) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
               decoration: BoxDecoration(
                 color: cs.paidItemsCount == cs.totalPlannedItems
-                    ? const Color(0xFFF0FDF4)
-                    : const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(6),
+                    ? AppColors.paidTileBg
+                    : AppColors.warningBgLight,
+                borderRadius: AppRadius.radiusSm,
                 border: Border.all(
                   color: cs.paidItemsCount == cs.totalPlannedItems
                       ? const Color(0xFFBBF7D0)
@@ -589,18 +574,16 @@ class DashboardScreen extends ConsumerWidget {
                     size: 14,
                     color: cs.paidItemsCount == cs.totalPlannedItems
                         ? const Color(0xFF166534)
-                        : const Color(0xFFB45309),
+                        : AppColors.warningAmberDark,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Rencana: ${cs.paidItemsCount}/${cs.totalPlannedItems} Lunas (${CurrencyFormatter.format(cs.totalPlannedAmount)})',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                      style: AppTypography.labelSmall.copyWith(
                         color: cs.paidItemsCount == cs.totalPlannedItems
                             ? const Color(0xFF166534)
-                            : const Color(0xFFB45309),
+                            : AppColors.warningAmberDark,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -608,7 +591,7 @@ class DashboardScreen extends ConsumerWidget {
                   const Icon(
                     Icons.chevron_right,
                     size: 14,
-                    color: Color(0xFF94A3B8),
+                    color: AppColors.textMuted,
                   ),
                 ],
               ),
@@ -625,7 +608,7 @@ class DashboardScreen extends ConsumerWidget {
         padding: EdgeInsets.zero,
         children: [
           const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFF00A884)),
+            decoration: BoxDecoration(color: AppColors.brandPrimary),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
@@ -633,12 +616,12 @@ class DashboardScreen extends ConsumerWidget {
                 Text(
                   'Aloca',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textInverse,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: AppSpacing.xs),
                 Text(
                   'Plan → Allocate → Track',
                   style: TextStyle(color: Colors.white70, fontSize: 12),
@@ -658,7 +641,8 @@ class DashboardScreen extends ConsumerWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const TransactionsListScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const TransactionsListScreen()),
               );
             },
           ),
@@ -669,7 +653,8 @@ class DashboardScreen extends ConsumerWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const AllocationManagementScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const AllocationManagementScreen()),
               );
             },
           ),

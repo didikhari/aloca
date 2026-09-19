@@ -9,6 +9,10 @@ import '../../providers/category_provider.dart';
 import '../../providers/allocation_provider.dart';
 import '../../providers/template_provider.dart';
 import '../../providers/summary_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 import '../dashboard/widgets/category_planned_expenses_sheet.dart';
 import '../../providers/planned_expense_provider.dart';
@@ -17,10 +21,12 @@ class AllocationManagementScreen extends ConsumerStatefulWidget {
   const AllocationManagementScreen({super.key});
 
   @override
-  ConsumerState<AllocationManagementScreen> createState() => _AllocationManagementScreenState();
+  ConsumerState<AllocationManagementScreen> createState() =>
+      _AllocationManagementScreenState();
 }
 
-class _AllocationManagementScreenState extends ConsumerState<AllocationManagementScreen> {
+class _AllocationManagementScreenState
+    extends ConsumerState<AllocationManagementScreen> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, String> _methods = {}; // 'percentage', 'fixed', 'remaining'
 
@@ -47,7 +53,9 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
       _controllers[cat.id] = TextEditingController(
         text: method == 'percentage'
             ? val.toStringAsFixed(0)
-            : (method == 'fixed' ? CurrencyFormatter.formatNumberOnly(val.toInt()) : ''),
+            : (method == 'fixed'
+                ? CurrencyFormatter.formatNumberOnly(val.toInt())
+                : ''),
       );
     }
     setState(() {});
@@ -61,10 +69,12 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
     super.dispose();
   }
 
-  Map<String, int> _calculateLiveAllocations(int totalAvailable, List<Category> categories) {
+  Map<String, int> _calculateLiveAllocations(
+      int totalAvailable, List<Category> categories) {
     final liveNominals = <String, int>{};
-    int remainingCounter = totalAvailable;
+    int nonRemainingTotal = 0;
 
+    // Pass 1: Calculate fixed and percentage allocations
     for (final cat in categories) {
       final method = _methods[cat.id] ?? 'percentage';
       final text = _controllers[cat.id]?.text ?? '0';
@@ -77,34 +87,56 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
         calculatedNominal = ((totalAvailable * val) / 100.0).floor();
       } else if (method == 'fixed') {
         calculatedNominal = val.toInt();
-      } else if (method == 'remaining') {
-        calculatedNominal = remainingCounter > 0 ? remainingCounter : 0;
       }
 
-      remainingCounter -= calculatedNominal;
-      liveNominals[cat.id] = calculatedNominal;
+      if (method != 'remaining') {
+        nonRemainingTotal += calculatedNominal;
+        liveNominals[cat.id] = calculatedNominal;
+      }
     }
+
+    // Remaining funds available after all non-remaining allocations
+    int remainingAvailable = totalAvailable - nonRemainingTotal;
+    if (remainingAvailable < 0) {
+      remainingAvailable = 0;
+    }
+
+    // Pass 2: Assign remaining allocations
+    for (final cat in categories) {
+      final method = _methods[cat.id] ?? 'percentage';
+      if (method == 'remaining') {
+        liveNominals[cat.id] = remainingAvailable;
+        remainingAvailable = 0;
+      }
+    }
+
     return liveNominals;
   }
 
   @override
   Widget build(BuildContext context) {
     final activePeriod = ref.watch(activePeriodProvider);
-    final categories = ref.watch(categoryListProvider).where((c) => c.isActive).toList();
+    final categories =
+        ref.watch(categoryListProvider).where((c) => c.isActive).toList();
     final templates = ref.watch(templateListProvider);
     final summary = ref.watch(monthlySummaryProvider);
     final isMasked = ref.watch(isBalanceMaskedProvider);
 
-    final liveNominals = _calculateLiveAllocations(summary.totalAvailable, categories);
-    final liveTotalAllocated = liveNominals.values.fold<int>(0, (sum, val) => sum + val);
+    final liveNominals =
+        _calculateLiveAllocations(summary.totalAvailable, categories);
+    final liveTotalAllocated =
+        liveNominals.values.fold<int>(0, (sum, val) => sum + val);
     final liveUnallocated = summary.totalAvailable - liveTotalAllocated;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        title: Text('Alokasi: ${activePeriod.displayText}'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        title: Text(
+          'Alokasi: ${activePeriod.displayText}',
+          style: AppTypography.headingLarge,
+        ),
+        backgroundColor: AppColors.surfaceWhite,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
           IconButton(
@@ -116,15 +148,15 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Available Funds Summary Banner (Live Updated)
               CustomCard(
                 backgroundColor: liveUnallocated < 0
-                    ? const Color(0xFFDC2626)
-                    : const Color(0xFF00A884),
+                    ? AppColors.expenseRed
+                    : AppColors.brandPrimary,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -134,7 +166,8 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                         const Expanded(
                           child: Text(
                             'Dana Tersedia Bulan Ini',
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 13),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -148,25 +181,25 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          tooltip: isMasked ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                          tooltip: isMasked
+                              ? 'Tampilkan Nominal'
+                              : 'Sembunyikan Nominal',
                           onPressed: () {
-                            ref.read(isBalanceMaskedProvider.notifier).toggleMask();
+                            ref
+                                .read(isBalanceMaskedProvider.notifier)
+                                .toggleMask();
                           },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       isMasked
                           ? 'Rp ••••••••'
                           : CurrencyFormatter.format(summary.totalAvailable),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTypography.displayMedium,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -174,10 +207,11 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                           child: Text(
                             'Total Alokasi: ${CurrencyFormatter.format(liveTotalAllocated)}',
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: AppTypography.labelSmall
+                                .copyWith(color: AppColors.textInverse),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
                             liveUnallocated >= 0
@@ -186,7 +220,9 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                             textAlign: TextAlign.end,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: liveUnallocated >= 0 ? Colors.white : const Color(0xFFFEF08A),
+                              color: liveUnallocated >= 0
+                                  ? AppColors.textInverse
+                                  : const Color(0xFFFEF08A),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -195,23 +231,26 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                       ],
                     ),
                     if (liveUnallocated < 0) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xs,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: AppRadius.radiusSm,
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.white),
+                            const Icon(Icons.warning_amber_rounded,
+                                size: 14, color: AppColors.surfaceWhite),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 'Alokasi melebihi dana tersedia sebesar ${CurrencyFormatter.format(liveUnallocated.abs())}!',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.textInverse,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -225,190 +264,177 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               const Text(
                 'Atur Persentase / Nominal per Kategori',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
-                ),
+                style: AppTypography.headingSmall,
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.md),
                 itemBuilder: (context, index) {
                   final cat = categories[index];
-                  final controller = _controllers[cat.id] ??= TextEditingController(text: '0');
+                  final controller =
+                      _controllers[cat.id] ??= TextEditingController(text: '0');
                   final method = _methods[cat.id] ??= 'percentage';
                   final liveNominal = liveNominals[cat.id] ?? 0;
 
                   return CustomCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    padding: EdgeInsets.zero,
+                    child: InkWell(
+                      onTap: () => _showEditAllocationBottomSheet(
+                        cat,
+                        summary.totalAvailable,
+                      ),
+                      borderRadius: AppRadius.radiusLg,
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    cat.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Hasil: ${CurrencyFormatter.format(liveNominal)}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF00A884),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-
-                            // Method Dropdown
-                            DropdownButton<String>(
-                              value: method,
-                              underline: const SizedBox(),
-                              items: const [
-                                DropdownMenuItem(value: 'percentage', child: Text('%')),
-                                DropdownMenuItem(value: 'fixed', child: Text('Rp')),
-                                DropdownMenuItem(value: 'remaining', child: Text('Sisa')),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() {
-                                    _methods[cat.id] = val;
-                                  });
-                                }
-                              },
-                            ),
-
-                            const SizedBox(width: 8),
-
-                            // Value Input
-                            if (method != 'remaining')
-                              Expanded(
-                                child: TextField(
-                                  controller: controller,
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: method == 'fixed'
-                                      ? [ThousandsSeparatorInputFormatter()]
-                                      : null,
-                                  onChanged: (_) => setState(() {}),
-                                  decoration: InputDecoration(
-                                    suffixText: method == 'percentage' ? '%' : '',
-                                    isDense: true,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              const Expanded(
-                                child: Text(
-                                  'Otomatis Sisa',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // Button / Badge to manage planned expenses for this category
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final plannedList = ref
-                                .watch(plannedExpenseListProvider)
-                                .where((pe) => pe.categoryId == cat.id)
-                                .toList();
-                            return InkWell(
-                              onTap: () {
-                                CategoryPlannedExpensesSheet.show(
-                                  context,
-                                  category: cat,
-                                  allocatedAmount: liveNominal,
-                                  actualExpense: 0,
-                                );
-                              },
-                              borderRadius: BorderRadius.circular(6),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.playlist_add_check,
-                                      size: 14,
-                                      color: Color(0xFF00A884),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      plannedList.isEmpty
-                                          ? '+ Tambah Rencana Tagihan'
-                                          : '${plannedList.length} Rencana Tagihan',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF00A884),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        cat.name,
+                                        style: AppTypography.bodyPrimary,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _getMethodLabelText(
+                                          method,
+                                          controller.text,
+                                        ),
+                                        style: AppTypography.labelStandard,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      CurrencyFormatter.format(liveNominal),
+                                      style: AppTypography.bodyPrimary.copyWith(
+                                        color: AppColors.brandPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Ubah',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.textMuted,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.chevron_right,
+                                          size: 14,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ),
-                            );
-                          },
+                              ],
+                            ),
+
+                            const SizedBox(height: AppSpacing.sm),
+
+                            // Button / Badge to manage planned expenses for this category
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final plannedList = ref
+                                    .watch(plannedExpenseListProvider)
+                                    .where((pe) => pe.categoryId == cat.id)
+                                    .toList();
+                                return InkWell(
+                                  onTap: () {
+                                    CategoryPlannedExpensesSheet.show(
+                                      context,
+                                      category: cat,
+                                      allocatedAmount: liveNominal,
+                                      actualExpense: 0,
+                                    );
+                                  },
+                                  borderRadius: AppRadius.radiusSm,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.sm,
+                                      vertical: AppSpacing.xs,
+                                    ),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.chipSubSurface,
+                                      borderRadius: AppRadius.radiusSm,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.playlist_add_check,
+                                          size: 14,
+                                          color: AppColors.brandPrimary,
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Text(
+                                          plannedList.isEmpty
+                                              ? '+ Tambah Rencana Tagihan'
+                                              : '${plannedList.length} Rencana Tagihan',
+                                          style:
+                                              AppTypography.labelSmall.copyWith(
+                                            color: AppColors.brandPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   );
                 },
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: AppSpacing.buttonHeight,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00A884),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    backgroundColor: AppColors.brandPrimary,
+                    foregroundColor: AppColors.textInverse,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.radiusLg,
                     ),
+                    textStyle: AppTypography.buttonLarge,
                   ),
                   onPressed: _saveAllocations,
-                  child: const Text(
-                    'Simpan Alokasi',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                  child: const Text('Simpan Alokasi'),
                 ),
               ),
             ],
@@ -459,11 +485,13 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
   void _saveAllocations() async {
     final activePeriodId = ref.read(activePeriodIdProvider);
     final summary = ref.read(monthlySummaryProvider);
-    final categories = ref.read(categoryListProvider).where((c) => c.isActive).toList();
+    final categories =
+        ref.read(categoryListProvider).where((c) => c.isActive).toList();
 
     int available = summary.totalAvailable;
     final liveNominals = _calculateLiveAllocations(available, categories);
-    final liveTotalAllocated = liveNominals.values.fold<int>(0, (sum, val) => sum + val);
+    final liveTotalAllocated =
+        liveNominals.values.fold<int>(0, (sum, val) => sum + val);
     final liveUnallocated = available - liveTotalAllocated;
 
     if (liveUnallocated < 0) {
@@ -514,7 +542,9 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
       ));
     }
 
-    await ref.read(allocationListProvider.notifier).saveAllocations(newAllocations);
+    await ref
+        .read(allocationListProvider.notifier)
+        .saveAllocations(newAllocations);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -522,5 +552,331 @@ class _AllocationManagementScreenState extends ConsumerState<AllocationManagemen
       );
       Navigator.pop(context);
     }
+  }
+
+  String _getMethodLabelText(String method, String text) {
+    if (method == 'percentage') {
+      final val = text.isEmpty ? '0' : text;
+      return 'Metode: Persentase ($val%)';
+    } else if (method == 'fixed') {
+      final val = text.isEmpty ? '0' : text;
+      return 'Metode: Nominal (Rp $val)';
+    } else if (method == 'remaining') {
+      return 'Metode: Otomatis Sisa Dana';
+    }
+    return '';
+  }
+
+  void _showEditAllocationBottomSheet(Category cat, int totalAvailable) {
+    String selectedMethod = _methods[cat.id] ?? 'percentage';
+    final controller =
+        _controllers[cat.id] ??= TextEditingController(text: '0');
+    final valController = TextEditingController(text: controller.text);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final valText = valController.text;
+            final valNum = selectedMethod == 'fixed'
+                ? CurrencyFormatter.parse(valText).toDouble()
+                : (double.tryParse(valText) ?? 0.0);
+
+            int estimatedResult = 0;
+            if (selectedMethod == 'percentage') {
+              estimatedResult = ((totalAvailable * valNum) / 100.0).floor();
+            } else if (selectedMethod == 'fixed') {
+              estimatedResult = valNum.toInt();
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceWhite,
+                  borderRadius: AppRadius.radiusSheet,
+                ),
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.handle),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Header title
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.sm),
+                            decoration: const BoxDecoration(
+                              color: AppColors.brandTint,
+                              borderRadius: AppRadius.radiusMd,
+                            ),
+                            child: const Icon(
+                              Icons.tune_outlined,
+                              color: AppColors.brandPrimary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Edit Alokasi: ${cat.name}',
+                              style: AppTypography.headingMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Method Selection Chips
+                      const Text(
+                        'Pilih Metode Alokasi',
+                        style: AppTypography.bodySecondary,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
+                              labelPadding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              label: const Center(
+                                child: Text(
+                                  'Persentase (%)',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              selected: selectedMethod == 'percentage',
+                              selectedColor: AppColors.brandPrimary,
+                              labelStyle: TextStyle(
+                                color: selectedMethod == 'percentage'
+                                    ? AppColors.textInverse
+                                    : AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setSheetState(() {
+                                    selectedMethod = 'percentage';
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: ChoiceChip(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
+                              labelPadding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              label: const Center(
+                                child: Text(
+                                  'Nominal (Rp)',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              selected: selectedMethod == 'fixed',
+                              selectedColor: AppColors.brandPrimary,
+                              labelStyle: TextStyle(
+                                color: selectedMethod == 'fixed'
+                                    ? AppColors.textInverse
+                                    : AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setSheetState(() {
+                                    selectedMethod = 'fixed';
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: ChoiceChip(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
+                              labelPadding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              label: const Center(
+                                child: Text(
+                                  'Sisa Dana',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              selected: selectedMethod == 'remaining',
+                              selectedColor: AppColors.brandPrimary,
+                              labelStyle: TextStyle(
+                                color: selectedMethod == 'remaining'
+                                    ? AppColors.textInverse
+                                    : AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setSheetState(() {
+                                    selectedMethod = 'remaining';
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Value Input Field
+                      if (selectedMethod != 'remaining') ...[
+                        TextField(
+                          controller: valController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: selectedMethod == 'fixed'
+                              ? [ThousandsSeparatorInputFormatter()]
+                              : null,
+                          onChanged: (_) => setSheetState(() {}),
+                          decoration: InputDecoration(
+                            labelText: selectedMethod == 'percentage'
+                                ? 'Nilai Persentase (%)'
+                                : 'Nominal Alokasi (Rp)',
+                            prefixText:
+                                selectedMethod == 'fixed' ? 'Rp ' : null,
+                            suffixText:
+                                selectedMethod == 'percentage' ? '%' : null,
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.sm,
+                          ),
+                          decoration: const BoxDecoration(
+                            color: AppColors.chipSubSurface,
+                            borderRadius: AppRadius.radiusSm,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline,
+                                  size: 16, color: AppColors.textSecondary),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Perkiraan Hasil: ${CurrencyFormatter.format(estimatedResult)}',
+                                  style: AppTypography.bodySecondary.copyWith(
+                                    color: AppColors.brandPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: const BoxDecoration(
+                            color: AppColors.chipSubSurface,
+                            borderRadius: AppRadius.radiusSm,
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.auto_awesome,
+                                  size: 18, color: AppColors.brandPrimary),
+                              SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Kategori ini akan otomatis menyerap seluruh sisa dana yang belum dialokasikan oleh kategori lainnya.',
+                                  style: AppTypography.labelStandard,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.md),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: AppRadius.radiusLg,
+                                ),
+                              ),
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Batal'),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.brandPrimary,
+                                foregroundColor: AppColors.textInverse,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.md),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: AppRadius.radiusLg,
+                                ),
+                                textStyle: AppTypography.buttonLarge,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _methods[cat.id] = selectedMethod;
+                                  controller.text = valController.text;
+                                });
+                                Navigator.pop(ctx);
+                              },
+                              child: const Text('Simpan Alokasi'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

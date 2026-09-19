@@ -3,7 +3,8 @@ import '../../core/database/hive_service.dart';
 import '../../models/transaction.dart';
 import 'period_provider.dart';
 
-final transactionListProvider = StateNotifierProvider<TransactionListNotifier, List<Transaction>>((ref) {
+final transactionListProvider =
+    StateNotifierProvider<TransactionListNotifier, List<Transaction>>((ref) {
   final activePeriodId = ref.watch(activePeriodIdProvider);
   return TransactionListNotifier(ref, activePeriodId);
 });

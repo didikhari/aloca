@@ -4,13 +4,17 @@ import 'package:intl/intl.dart';
 import '../../core/database/hive_service.dart';
 import '../../core/services/excel_service.dart';
 import '../../providers/period_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 
 class BackupRestoreScreen extends ConsumerStatefulWidget {
   const BackupRestoreScreen({super.key});
 
   @override
-  ConsumerState<BackupRestoreScreen> createState() => _BackupRestoreScreenState();
+  ConsumerState<BackupRestoreScreen> createState() =>
+      _BackupRestoreScreenState();
 }
 
 class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
@@ -29,24 +33,28 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        title: const Text('Backup & Restore Excel'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        title: const Text(
+          'Backup & Restore Excel',
+          style: AppTypography.headingLarge,
+        ),
+        backgroundColor: AppColors.surfaceWhite,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 14-Day Backup Status Card
               CustomCard(
-                backgroundColor: (daysSinceBackup == null || daysSinceBackup > 14)
-                    ? const Color(0xFFFFFBEB)
-                    : const Color(0xFFE6F4EA),
+                backgroundColor:
+                    (daysSinceBackup == null || daysSinceBackup > 14)
+                        ? AppColors.warningBgLight
+                        : AppColors.statusUnderBudgetBg,
                 child: Row(
                   children: [
                     Icon(
@@ -54,11 +62,11 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                           ? Icons.warning_amber_rounded
                           : Icons.verified_user_outlined,
                       color: (daysSinceBackup == null || daysSinceBackup > 14)
-                          ? const Color(0xFFD97706)
-                          : const Color(0xFF137333),
+                          ? AppColors.warningAmberDark
+                          : AppColors.statusUnderBudgetFg,
                       size: 32,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,17 +77,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                                 : (daysSinceBackup > 14
                                     ? 'Backup Terakhir $daysSinceBackup Hari Yang Lalu'
                                     : 'Data Keuangan Terbackup Sesuai Rencana'),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                            style: AppTypography.headingSmall,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             lastBackup != null
                                 ? 'Terakhir dikirim ke file Excel pada ${DateFormat('d MMMM yyyy, HH:mm', 'id_ID').format(lastBackup)}'
                                 : 'Lakukan backup berkala ke Google Drive / HP Anda.',
-                            style: const TextStyle(fontSize: 12, color: Colors.black87),
+                            style: AppTypography.labelStandard,
                           ),
                         ],
                       ),
@@ -88,7 +93,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
               // Export Card
               CustomCard(
@@ -97,32 +102,30 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.file_upload_outlined, color: Color(0xFF00A884)),
-                        SizedBox(width: 8),
+                        Icon(Icons.file_upload_outlined,
+                            color: AppColors.brandPrimary),
+                        SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
                             'Export Data ke Excel (.xlsx)',
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: AppTypography.headingSmall,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     const Text(
                       'Menghasilkan workbook Excel berisi 7 sheet terstruktur (FinancialPeriods, Income, Categories, Allocations, Templates, TemplateItems, Transactions). Anda dapat menyimpannya ke Google Drive atau penyimpanan HP.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                      style: AppTypography.bodySecondary,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00A884),
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.brandPrimary,
+                          foregroundColor: AppColors.textInverse,
                         ),
                         icon: const Icon(Icons.download),
                         label: const Text('Export & Simpan Excel'),
@@ -133,7 +136,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Import & Restore Card
               CustomCard(
@@ -142,32 +145,30 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.file_download_outlined, color: Color(0xFF3B82F6)),
-                        SizedBox(width: 8),
+                        Icon(Icons.file_download_outlined,
+                            color: AppColors.infoBlue),
+                        SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
                             'Import / Restore Data dari Excel',
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: AppTypography.headingSmall,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     const Text(
                       'Memulihkan database lokal dari file backup Excel. Proses ini akan menggantikan (Replace All) data lokal aplikasi saat ini setelah Anda melakukan konfirmasi.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                      style: AppTypography.bodySecondary,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF3B82F6),
-                          side: const BorderSide(color: Color(0xFF3B82F6)),
+                          foregroundColor: AppColors.infoBlue,
+                          side: const BorderSide(color: AppColors.infoBlue),
                         ),
                         icon: const Icon(Icons.folder_open),
                         label: const Text('Pilih File Excel Backup'),
@@ -191,7 +192,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
     if (mounted && filePath != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('File Excel berhasil di-generate & dibagikan!')),
+        const SnackBar(
+            content: Text('File Excel berhasil di-generate & dibagikan!')),
       );
     }
   }
@@ -237,7 +239,10 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.expenseRed,
+                foregroundColor: AppColors.textInverse,
+              ),
               onPressed: () async {
                 Navigator.pop(context);
                 await HiveService.replaceDatabase(
@@ -255,7 +260,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Data berhasil dipulihkan dari Excel!')),
+                    const SnackBar(
+                        content: Text('Data berhasil dipulihkan dari Excel!')),
                   );
                 }
               },

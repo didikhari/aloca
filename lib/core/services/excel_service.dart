@@ -15,7 +15,7 @@ import '../../models/planned_expense.dart';
 class ExcelService {
   static Future<String?> exportData() async {
     final excel = Excel.createExcel();
-    
+
     // Remove default sheet
     excel.delete('Sheet1');
 
@@ -185,7 +185,9 @@ class ExcelService {
         TextCellValue(pe.categoryId),
         TextCellValue(pe.title),
         IntCellValue(pe.plannedAmount),
-        pe.actualPaidAmount != null ? IntCellValue(pe.actualPaidAmount!) : TextCellValue(''),
+        pe.actualPaidAmount != null
+            ? IntCellValue(pe.actualPaidAmount!)
+            : TextCellValue(''),
         TextCellValue(pe.isPaid ? 'true' : 'false'),
         TextCellValue(pe.paidTransactionId ?? ''),
         TextCellValue(pe.dueDate?.toIso8601String() ?? ''),
@@ -196,7 +198,8 @@ class ExcelService {
     if (fileBytes == null) return null;
 
     final tempDir = await getTemporaryDirectory();
-    final fileName = 'Aloca_Backup_${DateTime.now().toString().split(' ')[0]}.xlsx';
+    final fileName =
+        'Aloca_Backup_${DateTime.now().toString().split(' ')[0]}.xlsx';
     final filePath = '${tempDir.path}/$fileName';
     final file = File(filePath);
     await file.writeAsBytes(fileBytes);
@@ -206,7 +209,8 @@ class ExcelService {
       subject: 'Aloca Financial Backup ($fileName)',
     );
 
-    await HiveService.setSetting('last_backup_date', DateTime.now().toIso8601String());
+    await HiveService.setSetting(
+        'last_backup_date', DateTime.now().toIso8601String());
 
     return filePath;
   }
@@ -243,7 +247,8 @@ class ExcelService {
         if (!excel.tables.containsKey(req)) {
           return {
             'success': false,
-            'message': 'Format backup tidak valid: Sheet "$req" tidak ditemukan.'
+            'message':
+                'Format backup tidak valid: Sheet "$req" tidak ditemukan.'
           };
         }
       }
@@ -374,12 +379,17 @@ class ExcelService {
             categoryId: row[2]!.value.toString(),
             title: row[3]?.value?.toString() ?? '',
             plannedAmount: int.parse(row[4]!.value.toString()),
-            actualPaidAmount: (actualPaidStr != null && actualPaidStr.isNotEmpty)
-                ? int.tryParse(actualPaidStr)
-                : null,
+            actualPaidAmount:
+                (actualPaidStr != null && actualPaidStr.isNotEmpty)
+                    ? int.tryParse(actualPaidStr)
+                    : null,
             isPaid: row[6]?.value?.toString().toLowerCase() == 'true',
-            paidTransactionId: (paidTxIdStr != null && paidTxIdStr.isNotEmpty) ? paidTxIdStr : null,
-            dueDate: (dueDateStr != null && dueDateStr.isNotEmpty) ? DateTime.tryParse(dueDateStr) : null,
+            paidTransactionId: (paidTxIdStr != null && paidTxIdStr.isNotEmpty)
+                ? paidTxIdStr
+                : null,
+            dueDate: (dueDateStr != null && dueDateStr.isNotEmpty)
+                ? DateTime.tryParse(dueDateStr)
+                : null,
           ));
         }
       }

@@ -8,15 +8,21 @@ import '../../providers/period_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/expense_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 
 class QuickAddTransactionScreen extends ConsumerStatefulWidget {
   const QuickAddTransactionScreen({super.key});
 
   @override
-  ConsumerState<QuickAddTransactionScreen> createState() => _QuickAddTransactionScreenState();
+  ConsumerState<QuickAddTransactionScreen> createState() =>
+      _QuickAddTransactionScreenState();
 }
 
-class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionScreen> {
+class _QuickAddTransactionScreenState
+    extends ConsumerState<QuickAddTransactionScreen> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedType = 'Expense'; // 'Expense' or 'Income'
@@ -24,17 +30,18 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(categoryListProvider).where((c) => c.isActive).toList();
+    final categories =
+        ref.watch(categoryListProvider).where((c) => c.isActive).toList();
 
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: AppRadius.radiusSheet,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -45,12 +52,10 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _selectedType == 'Expense' ? 'Catat Pengeluaran' : 'Catat Pendapatan',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
+                    _selectedType == 'Expense'
+                        ? 'Catat Pengeluaran'
+                        : 'Catat Pendapatan',
+                    style: AppTypography.headingMedium,
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -59,7 +64,7 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               // Segmented type toggle (Expense vs Income)
               Row(
@@ -68,9 +73,11 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                     child: ChoiceChip(
                       label: const Center(child: Text('Pengeluaran')),
                       selected: _selectedType == 'Expense',
-                      selectedColor: const Color(0xFFEF4444).withOpacity(0.15),
+                      selectedColor: AppColors.expenseBgLight,
                       labelStyle: TextStyle(
-                        color: _selectedType == 'Expense' ? const Color(0xFFEF4444) : Colors.grey,
+                        color: _selectedType == 'Expense'
+                            ? AppColors.expenseRed
+                            : AppColors.textMuted,
                         fontWeight: FontWeight.bold,
                       ),
                       onSelected: (selected) {
@@ -78,14 +85,16 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                       },
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: ChoiceChip(
                       label: const Center(child: Text('Pendapatan')),
                       selected: _selectedType == 'Income',
-                      selectedColor: const Color(0xFF00A884).withOpacity(0.15),
+                      selectedColor: AppColors.brandTint,
                       labelStyle: TextStyle(
-                        color: _selectedType == 'Income' ? const Color(0xFF00A884) : Colors.grey,
+                        color: _selectedType == 'Income'
+                            ? AppColors.brandPrimary
+                            : AppColors.textMuted,
                         fontWeight: FontWeight.bold,
                       ),
                       onSelected: (selected) {
@@ -96,12 +105,12 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Amount Input
               const Text(
                 'Nominal (Rp)',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style: AppTypography.bodyPrimary,
               ),
               const SizedBox(height: 6),
               TextField(
@@ -109,49 +118,53 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                 keyboardType: TextInputType.number,
                 inputFormatters: [ThousandsSeparatorInputFormatter()],
                 autofocus: true,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 decoration: InputDecoration(
                   prefixText: 'Rp ',
                   prefixStyle: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00A884),
+                    color: AppColors.brandPrimary,
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: AppColors.inputFill,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.radiusLg,
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Description
               const Text(
                 'Deskripsi / Catatan',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style: AppTypography.bodyPrimary,
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _descriptionController,
+                textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  hintText: _selectedType == 'Expense' ? 'Contoh: Belanja Bulanan' : 'Contoh: Gaji Bulanan',
+                  hintText: _selectedType == 'Expense'
+                      ? 'Contoh: Belanja Bulanan'
+                      : 'Contoh: Gaji Bulanan',
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: AppColors.inputFill,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.radiusLg,
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
 
               if (_selectedType == 'Expense') ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 const Text(
                   'Kategori',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: AppTypography.bodyPrimary,
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
@@ -170,33 +183,33 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
                   },
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    fillColor: AppColors.inputFill,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.radiusLg,
                       borderSide: BorderSide.none,
                     ),
                   ),
                 ),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: AppSpacing.buttonHeight,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedType == 'Expense' ? const Color(0xFFEF4444) : const Color(0xFF00A884),
-                    foregroundColor: Colors.white,
+                    backgroundColor: _selectedType == 'Expense'
+                        ? AppColors.expenseRed
+                        : AppColors.brandPrimary,
+                    foregroundColor: AppColors.textInverse,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.radiusLg,
                     ),
+                    textStyle: AppTypography.buttonLarge,
                   ),
                   onPressed: _saveTransaction,
-                  child: const Text(
-                    'Simpan',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                  child: const Text('Simpan'),
                 ),
               ),
             ],
@@ -211,7 +224,7 @@ class _QuickAddTransactionScreenState extends ConsumerState<QuickAddTransactionS
     if (amount <= 0) return;
 
     final activePeriodId = ref.read(activePeriodIdProvider);
-    final uuid = const Uuid();
+    const uuid = Uuid();
     final description = _descriptionController.text.trim().isEmpty
         ? (_selectedType == 'Expense' ? 'Pengeluaran' : 'Pendapatan')
         : _descriptionController.text.trim();

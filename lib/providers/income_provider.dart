@@ -3,7 +3,8 @@ import '../../core/database/hive_service.dart';
 import '../../models/income.dart';
 import 'period_provider.dart';
 
-final incomeListProvider = StateNotifierProvider<IncomeListNotifier, List<Income>>((ref) {
+final incomeListProvider =
+    StateNotifierProvider<IncomeListNotifier, List<Income>>((ref) {
   final activePeriodId = ref.watch(activePeriodIdProvider);
   return IncomeListNotifier(ref, activePeriodId);
 });

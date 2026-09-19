@@ -4,13 +4,17 @@ import 'core/database/hive_service.dart';
 import 'screens/onboarding/initial_setup_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 
+import 'theme/app_theme.dart';
+
 class AlocaApp extends StatelessWidget {
   const AlocaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final periods = HiveService.getAllPeriods();
-    final bool hasInitialPeriod = periods.isNotEmpty;
+    final allocations = HiveService.getAllAllocations();
+    final categories = HiveService.getAllCategories();
+    final bool hasInitialPeriod = periods.isNotEmpty && allocations.isNotEmpty && categories.isNotEmpty;
 
     return MaterialApp(
       title: 'Aloca',
@@ -24,18 +28,10 @@ class AlocaApp extends StatelessWidget {
         Locale('id', 'ID'),
         Locale('en', 'US'),
       ],
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00A884),
-          primary: const Color(0xFF00A884),
-          secondary: const Color(0xFF008B74),
-          background: const Color(0xFFF8FAFC),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-      ),
-      home: hasInitialPeriod ? const DashboardScreen() : const InitialSetupScreen(),
+      theme: AppTheme.lightTheme,
+      home: hasInitialPeriod
+          ? const DashboardScreen()
+          : const InitialSetupScreen(),
     );
   }
 }

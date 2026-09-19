@@ -6,7 +6,8 @@ import '../../models/allocation_template.dart';
 import 'period_provider.dart';
 import 'income_provider.dart';
 
-final allocationListProvider = StateNotifierProvider<AllocationListNotifier, List<Allocation>>((ref) {
+final allocationListProvider =
+    StateNotifierProvider<AllocationListNotifier, List<Allocation>>((ref) {
   final activePeriodId = ref.watch(activePeriodIdProvider);
   return AllocationListNotifier(ref, activePeriodId);
 });
@@ -40,27 +41,47 @@ class AllocationListNotifier extends StateNotifier<List<Allocation>> {
     const uuid = Uuid();
     final newAllocations = <Allocation>[];
 
-    int currentRemaining = availableFunds > 0 ? availableFunds : totalIncome;
+    int nonRemainingTotal = 0;
+    final calculatedNominals = <String, int>{};
 
+    // Pass 1: Calculate fixed and percentage allocations
     for (final item in items) {
       int calculatedNominal = 0;
       if (item.method == 'percentage') {
         calculatedNominal = ((availableFunds * item.value) / 100.0).floor();
       } else if (item.method == 'fixed') {
         calculatedNominal = item.value.toInt();
-      } else if (item.method == 'remaining') {
-        calculatedNominal = currentRemaining > 0 ? currentRemaining : 0;
       }
 
-      currentRemaining -= calculatedNominal;
+      if (item.method != 'remaining') {
+        nonRemainingTotal += calculatedNominal;
+        calculatedNominals[item.id] = calculatedNominal;
+      }
+    }
 
+    // Remaining funds available after non-remaining allocations
+    int remainingAvailable = availableFunds - nonRemainingTotal;
+    if (remainingAvailable < 0) {
+      remainingAvailable = 0;
+    }
+
+    // Pass 2: Assign remaining allocations
+    for (final item in items) {
+      if (item.method == 'remaining') {
+        calculatedNominals[item.id] = remainingAvailable;
+        remainingAvailable = 0;
+      }
+    }
+
+    for (final item in items) {
+      final nominal = calculatedNominals[item.id] ?? 0;
       newAllocations.add(Allocation(
         id: 'alloc_${uuid.v4()}',
         periodId: activePeriodId,
         categoryId: item.categoryId,
         method: item.method,
         value: item.value,
-        allocatedAmount: calculatedNominal,
+        allocatedAmount: nominal,
       ));
     }
 

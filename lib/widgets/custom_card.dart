@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
 
 class CustomCard extends StatelessWidget {
   final Widget child;
@@ -9,8 +12,8 @@ class CustomCard extends StatelessWidget {
   const CustomCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16.0),
-    this.backgroundColor = Colors.white,
+    this.padding = AppSpacing.cardPadding,
+    this.backgroundColor = AppColors.surfaceWhite,
     this.onTap,
   });
 
@@ -19,10 +22,10 @@ class CustomCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: AppRadius.radiusCard,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.cardShadow,
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -30,10 +33,10 @@ class CustomCard extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: AppRadius.radiusCard,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: AppRadius.radiusCard,
           child: Padding(
             padding: padding,
             child: child,

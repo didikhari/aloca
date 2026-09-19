@@ -8,7 +8,8 @@ class CurrencyFormatter {
     decimalDigits: 0,
   );
 
-  static final NumberFormat _numberOnlyFormatter = NumberFormat.decimalPattern('id_ID');
+  static final NumberFormat _numberOnlyFormatter =
+      NumberFormat.decimalPattern('id_ID');
 
   static String format(int amount) {
     return _formatter.format(amount);

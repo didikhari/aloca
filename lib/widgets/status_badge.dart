@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_typography.dart';
 
 class StatusBadge extends StatelessWidget {
   final String status; // 'Under Budget', 'On Budget', 'Over Budget'
@@ -15,32 +18,28 @@ class StatusBadge extends StatelessWidget {
     String text = status;
 
     if (status == 'Under Budget') {
-      bg = const Color(0xFFE6F4EA);
-      fg = const Color(0xFF137333);
+      bg = AppColors.statusUnderBudgetBg;
+      fg = AppColors.statusUnderBudgetFg;
     } else if (status == 'On Budget') {
-      bg = const Color(0xFFE8F0FE);
-      fg = const Color(0xFF1A73E8);
+      bg = AppColors.statusOnBudgetBg;
+      fg = AppColors.statusOnBudgetFg;
     } else if (status == 'Over Budget') {
-      bg = const Color(0xFFFCE8E6);
-      fg = const Color(0xFFC5221F);
+      bg = AppColors.statusOverBudgetBg;
+      fg = AppColors.statusOverBudgetFg;
     } else {
-      bg = Colors.grey.shade100;
-      fg = Colors.grey.shade700;
+      bg = AppColors.chipSubSurface;
+      fg = AppColors.textSecondary;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.radiusSm,
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: fg,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
+        style: AppTypography.captionBadge.copyWith(color: fg),
       ),
     );
   }

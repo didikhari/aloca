@@ -7,6 +7,9 @@ import '../../models/transaction.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/expense_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 
 class TransactionsListScreen extends ConsumerStatefulWidget {
@@ -18,10 +21,12 @@ class TransactionsListScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<TransactionsListScreen> createState() => _TransactionsListScreenState();
+  ConsumerState<TransactionsListScreen> createState() =>
+      _TransactionsListScreenState();
 }
 
-class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen> {
+class _TransactionsListScreenState
+    extends ConsumerState<TransactionsListScreen> {
   int _selectedFilterTab = 0; // 0: Semua, 1: Pendapatan, 2: Pengeluaran
   String? _selectedCategoryId;
 
@@ -54,7 +59,8 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
 
     // Merge into single list sorted by date desc
     final allItems = <dynamic>[];
-    if (_selectedCategoryId == null && (_selectedFilterTab == 0 || _selectedFilterTab == 1)) {
+    if (_selectedCategoryId == null &&
+        (_selectedFilterTab == 0 || _selectedFilterTab == 1)) {
       allItems.addAll(incomes);
     }
     if (_selectedFilterTab == 0 || _selectedFilterTab == 2) {
@@ -67,15 +73,16 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
         title: Text(
           selectedCategory != null
               ? 'Riwayat: ${selectedCategory.name}'
               : 'Riwayat Transaksi',
+          style: AppTypography.headingLarge,
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppColors.surfaceWhite,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
       ),
       body: SafeArea(
@@ -83,17 +90,20 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
           children: [
             // Filter Tab Bar
             Container(
-              color: Colors.white,
+              color: AppColors.surfaceWhite,
               width: double.infinity,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.sm,
+                ),
                 child: Row(
                   children: [
                     _buildTabChip('Semua', 0),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     _buildTabChip('Pendapatan', 1),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     _buildTabChip('Pengeluaran', 2),
                   ],
                 ),
@@ -103,32 +113,35 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
             // Active Category Filter Indicator
             if (_selectedCategoryId != null) ...[
               Container(
-                color: const Color(0xFFEFF6FF),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: AppColors.infoBgLight,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.sm,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Row(
                         children: [
-                          const Icon(Icons.filter_list, size: 16, color: Color(0xFF2563EB)),
+                          const Icon(Icons.filter_list,
+                              size: 16, color: AppColors.infoBlueDark),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Filter: ${selectedCategory?.name ?? 'Kategori'}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
+                              style: AppTypography.labelStandard.copyWith(
+                                color: AppColors.infoBlueDark,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF1E40AF),
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     InkWell(
                       onTap: () {
                         setState(() {
@@ -136,19 +149,20 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
                         });
                       },
                       child: const Padding(
-                        padding: EdgeInsets.all(4.0),
+                        padding: EdgeInsets.all(AppSpacing.xs),
                         child: Row(
                           children: [
                             Text(
                               'Hapus Filter',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF2563EB),
+                                color: AppColors.infoBlueDark,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(Icons.close, size: 16, color: Color(0xFF2563EB)),
+                            SizedBox(width: AppSpacing.xs),
+                            Icon(Icons.close,
+                                size: 16, color: AppColors.infoBlueDark),
                           ],
                         ),
                       ),
@@ -158,7 +172,7 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
               ),
             ],
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
 
             Expanded(
               child: allItems.isEmpty
@@ -168,11 +182,11 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
                             ? 'Belum ada transaksi pengeluaran untuk kategori ${selectedCategory?.name ?? ''} pada bulan ini.'
                             : 'Belum ada transaksi pada periode ini.',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.grey),
+                        style: AppTypography.bodySecondary,
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                      padding: AppSpacing.screenPadding,
                       itemCount: allItems.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
@@ -181,9 +195,12 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
                           return _buildIncomeItem(item);
                         } else {
                           final tx = item as Transaction;
-                          final catMatches = categories.where((c) => c.id == tx.categoryId);
-                          final category = catMatches.isNotEmpty ? catMatches.first : null;
-                          return _buildExpenseItem(tx, category?.name ?? 'Category');
+                          final catMatches =
+                              categories.where((c) => c.id == tx.categoryId);
+                          final category =
+                              catMatches.isNotEmpty ? catMatches.first : null;
+                          return _buildExpenseItem(
+                              tx, category?.name ?? 'Category');
                         }
                       },
                     ),
@@ -199,9 +216,9 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
-      selectedColor: const Color(0xFF00A884).withOpacity(0.15),
+      selectedColor: AppColors.brandTint,
       labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF00A884) : Colors.grey,
+        color: isSelected ? AppColors.brandPrimary : AppColors.textMuted,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       onSelected: (selected) {
@@ -219,13 +236,14 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                  decoration: const BoxDecoration(
+                    color: AppColors.successBgLight,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.arrow_downward, color: Color(0xFF10B981), size: 20),
+                  child: const Icon(Icons.arrow_downward,
+                      color: AppColors.incomeGreen, size: 20),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,18 +252,14 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
                         income.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Color(0xFF0F172A),
-                        ),
+                        style: AppTypography.headingSmall,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Pendapatan • ${DateFormat('d MMM yyyy', 'id_ID').format(income.date)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: AppTypography.labelStandard,
                       ),
                     ],
                   ),
@@ -253,17 +267,17 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             '+${CurrencyFormatter.format(income.amount)}',
-            style: const TextStyle(
+            style: AppTypography.bodyPrimary.copyWith(
+              color: AppColors.incomeGreen,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: Color(0xFF10B981),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 18),
+            icon: const Icon(Icons.delete_outline,
+                color: AppColors.textMuted, size: 18),
             onPressed: () {
               ref.read(incomeListProvider.notifier).deleteIncome(income.id);
             },
@@ -282,13 +296,14 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                  decoration: const BoxDecoration(
+                    color: AppColors.expenseBgLight,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.arrow_upward, color: Color(0xFFEF4444), size: 20),
+                  child: const Icon(Icons.arrow_upward,
+                      color: AppColors.expenseRed, size: 20),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,18 +312,14 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
                         tx.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Color(0xFF0F172A),
-                        ),
+                        style: AppTypography.headingSmall,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '$categoryName • ${DateFormat('d MMM yyyy', 'id_ID').format(tx.date)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: AppTypography.labelStandard,
                       ),
                     ],
                   ),
@@ -316,19 +327,21 @@ class _TransactionsListScreenState extends ConsumerState<TransactionsListScreen>
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             '-${CurrencyFormatter.format(tx.amount)}',
-            style: const TextStyle(
+            style: AppTypography.bodyPrimary.copyWith(
+              color: AppColors.expenseRed,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: Color(0xFFEF4444),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 18),
+            icon: const Icon(Icons.delete_outline,
+                color: AppColors.textMuted, size: 18),
             onPressed: () {
-              ref.read(transactionListProvider.notifier).deleteTransaction(tx.id);
+              ref
+                  .read(transactionListProvider.notifier)
+                  .deleteTransaction(tx.id);
             },
           ),
         ],

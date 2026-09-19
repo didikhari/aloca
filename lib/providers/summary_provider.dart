@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/hive_service.dart';
 import '../../models/category.dart';
 import 'period_provider.dart';
 import 'income_provider.dart';
@@ -8,24 +7,16 @@ import 'allocation_provider.dart';
 import 'category_provider.dart';
 import 'planned_expense_provider.dart';
 
-final isBalanceMaskedProvider = StateNotifierProvider<BalanceMaskNotifier, bool>((ref) {
+final isBalanceMaskedProvider =
+    StateNotifierProvider<BalanceMaskNotifier, bool>((ref) {
   return BalanceMaskNotifier();
 });
 
 class BalanceMaskNotifier extends StateNotifier<bool> {
-  static const String _key = 'is_balance_masked';
-
-  BalanceMaskNotifier() : super(_loadInitialState());
-
-  static bool _loadInitialState() {
-    final val = HiveService.getSetting(_key);
-    return val == 'true';
-  }
+  BalanceMaskNotifier() : super(true); // Default in masked mode when app opens
 
   void toggleMask() {
-    final newState = !state;
-    state = newState;
-    HiveService.setSetting(_key, newState.toString());
+    state = !state;
   }
 }
 
@@ -87,37 +78,94 @@ final monthlySummaryProvider = Provider<MonthlySummary>((ref) {
   final categories = ref.watch(categoryListProvider);
   final plannedExpenses = ref.watch(plannedExpenseListProvider);
 
+  final activeCategories = categories.where((c) => c.isActive).toList();
+
   final openingBalance = period.openingBalance;
   final totalIncome = incomes.fold<int>(0, (sum, i) => sum + i.amount);
   final totalAvailable = openingBalance + totalIncome;
 
-  final totalAllocated = allocations.fold<int>(0, (sum, a) => sum + a.allocatedAmount);
+  // Dynamic 2-Pass Category Allocation calculation
+  final dynamicAllocations = <String, int>{};
+  int nonRemainingTotal = 0;
+
+  // Pass 1: Calculate fixed and percentage allocations
+  for (final cat in activeCategories) {
+    final matchingAlloc = allocations.where((a) => a.categoryId == cat.id);
+    final catAlloc = matchingAlloc.isNotEmpty ? matchingAlloc.first : null;
+    final method = catAlloc?.method ?? 'percentage';
+    final val = catAlloc?.value ?? 0.0;
+
+    int calculatedNominal = 0;
+    if (method == 'percentage') {
+      calculatedNominal = ((totalAvailable * val) / 100.0).floor();
+    } else if (method == 'fixed') {
+      calculatedNominal = val.toInt();
+    }
+
+    if (method != 'remaining') {
+      nonRemainingTotal += calculatedNominal;
+      dynamicAllocations[cat.id] = calculatedNominal;
+    }
+  }
+
+  // Pass 2: Calculate remaining allocation
+  int remainingAvailable = totalAvailable - nonRemainingTotal;
+  if (remainingAvailable < 0) {
+    remainingAvailable = 0;
+  }
+
+  for (final cat in activeCategories) {
+    final matchingAlloc = allocations.where((a) => a.categoryId == cat.id);
+    final catAlloc = matchingAlloc.isNotEmpty ? matchingAlloc.first : null;
+    final method = catAlloc?.method ?? 'percentage';
+
+    if (method == 'remaining') {
+      dynamicAllocations[cat.id] = remainingAvailable;
+      remainingAvailable = 0; // absorb into first remaining category
+    }
+  }
+
+  // Fallback if dynamicAllocations has unhandled categories
+  for (final cat in activeCategories) {
+    if (!dynamicAllocations.containsKey(cat.id)) {
+      final matchingAlloc = allocations.where((a) => a.categoryId == cat.id);
+      dynamicAllocations[cat.id] =
+          matchingAlloc.isNotEmpty ? matchingAlloc.first.allocatedAmount : 0;
+    }
+  }
+
+  final totalAllocated =
+      dynamicAllocations.values.fold<int>(0, (sum, val) => sum + val);
   final unallocatedAmount = totalAvailable - totalAllocated;
 
-  final expenseTransactions = transactions.where((t) => t.type == 'Expense').toList();
-  final totalActualExpenses = expenseTransactions.fold<int>(0, (sum, t) => sum + t.amount);
+  final expenseTransactions =
+      transactions.where((t) => t.type == 'Expense').toList();
+  final totalActualExpenses =
+      expenseTransactions.fold<int>(0, (sum, t) => sum + t.amount);
 
   final remainingBudget = totalAllocated - totalActualExpenses;
   final closingBalance = totalAvailable - totalActualExpenses;
 
   final categoryStatuses = <CategoryBudgetStatus>[];
 
-  for (final cat in categories.where((c) => c.isActive)) {
-    final matchingAlloc = allocations.where((a) => a.categoryId == cat.id);
-    final catAlloc = matchingAlloc.isNotEmpty ? matchingAlloc.first : null;
-    final allocated = catAlloc?.allocatedAmount ?? 0;
+  for (final cat in activeCategories) {
+    final allocated = dynamicAllocations[cat.id] ?? 0;
 
-    final catExpenses = expenseTransactions.where((t) => t.categoryId == cat.id);
+    final catExpenses =
+        expenseTransactions.where((t) => t.categoryId == cat.id);
     final actual = catExpenses.fold<int>(0, (sum, t) => sum + t.amount);
 
-    final catPlanned = plannedExpenses.where((pe) => pe.categoryId == cat.id).toList();
+    final catPlanned =
+        plannedExpenses.where((pe) => pe.categoryId == cat.id).toList();
     final totalPlannedItems = catPlanned.length;
     final paidItemsCount = catPlanned.where((pe) => pe.isPaid).length;
     final unpaidItemsCount = catPlanned.where((pe) => !pe.isPaid).length;
-    final totalPlannedAmount = catPlanned.fold<int>(0, (sum, pe) => sum + pe.plannedAmount);
+    final totalPlannedAmount =
+        catPlanned.fold<int>(0, (sum, pe) => sum + pe.plannedAmount);
 
     final remaining = allocated - actual;
-    final usageRatio = allocated > 0 ? (actual / allocated) : (actual > 0 ? 1.0 : 0.0);
+    final usageRatio =
+        allocated > 0 ? (actual / allocated) : (actual > 0 ? 1.0 : 0.0);
 
     String status = 'Under Budget';
     if (actual > allocated && allocated > 0) {

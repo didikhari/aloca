@@ -6,7 +6,9 @@ import '../../models/transaction.dart';
 import 'expense_provider.dart';
 import 'period_provider.dart';
 
-final plannedExpenseListProvider = StateNotifierProvider<PlannedExpenseListNotifier, List<PlannedExpense>>((ref) {
+final plannedExpenseListProvider =
+    StateNotifierProvider<PlannedExpenseListNotifier, List<PlannedExpense>>(
+        (ref) {
   final activePeriodId = ref.watch(activePeriodIdProvider);
   return PlannedExpenseListNotifier(ref, activePeriodId);
 });
@@ -50,11 +52,14 @@ class PlannedExpenseListNotifier extends StateNotifier<List<PlannedExpense>> {
   Future<void> deletePlannedExpense(String id) async {
     final item = state.firstWhere(
       (element) => element.id == id,
-      orElse: () => PlannedExpense(id: '', periodId: '', categoryId: '', title: '', plannedAmount: 0),
+      orElse: () => PlannedExpense(
+          id: '', periodId: '', categoryId: '', title: '', plannedAmount: 0),
     );
     if (item.id.isNotEmpty && item.isPaid && item.paidTransactionId != null) {
       // Also remove associated transaction if paid
-      await ref.read(transactionListProvider.notifier).deleteTransaction(item.paidTransactionId!);
+      await ref
+          .read(transactionListProvider.notifier)
+          .deleteTransaction(item.paidTransactionId!);
     }
     await HiveService.deletePlannedExpense(id);
     loadPlannedExpenses();
@@ -84,15 +89,15 @@ class PlannedExpenseListNotifier extends StateNotifier<List<PlannedExpense>> {
           : null,
     );
 
-    await ref.read(transactionListProvider.notifier).addTransaction(newTx);
-
     final updatedItem = item.copyWith(
       isPaid: true,
       actualPaidAmount: actualPaidAmount,
       paidTransactionId: newTx.id,
     );
 
+    // Save planned expense FIRST so paidTransactionId is linked before transaction notification
     await HiveService.savePlannedExpense(updatedItem);
+    await ref.read(transactionListProvider.notifier).addTransaction(newTx);
     loadPlannedExpenses();
   }
 
@@ -100,9 +105,7 @@ class PlannedExpenseListNotifier extends StateNotifier<List<PlannedExpense>> {
   Future<void> unpayPlannedExpense(PlannedExpense item) async {
     if (!item.isPaid) return;
 
-    if (item.paidTransactionId != null) {
-      await ref.read(transactionListProvider.notifier).deleteTransaction(item.paidTransactionId!);
-    }
+    final txId = item.paidTransactionId;
 
     final updatedItem = item.copyWith(
       isPaid: false,
@@ -111,6 +114,9 @@ class PlannedExpenseListNotifier extends StateNotifier<List<PlannedExpense>> {
     );
 
     await HiveService.savePlannedExpense(updatedItem);
+    if (txId != null) {
+      await ref.read(transactionListProvider.notifier).deleteTransaction(txId);
+    }
     loadPlannedExpenses();
   }
 }

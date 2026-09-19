@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/category.dart';
 import '../../providers/category_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 
 import '../../core/database/hive_service.dart';
@@ -15,25 +18,29 @@ class CategoriesScreen extends ConsumerWidget {
     final categories = ref.watch(categoryListProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        title: const Text('Kelola Kategori'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        title: const Text(
+          'Kelola Kategori',
+          style: AppTypography.headingLarge,
+        ),
+        backgroundColor: AppColors.surfaceWhite,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
       ),
       body: SafeArea(
         child: ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.screenPadding,
           itemCount: categories.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final cat = categories[index];
             Color color;
             try {
-              color = Color(int.parse('FF${cat.colorHex.replaceAll('#', '')}', radix: 16));
+              color = Color(int.parse('FF${cat.colorHex.replaceAll('#', '')}',
+                  radix: 16));
             } catch (_) {
-              color = const Color(0xFF00A884);
+              color = AppColors.brandPrimary;
             }
 
             return CustomCard(
@@ -51,29 +58,27 @@ class CategoriesScreen extends ConsumerWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Text(
                             cat.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: Color(0xFF0F172A),
-                            ),
+                            style: AppTypography.headingSmall,
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF64748B)),
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 20, color: AppColors.textSecondary),
                     tooltip: 'Ubah Nama Kategori',
                     onPressed: () => _showEditCategoryDialog(context, ref, cat),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline,
+                        size: 20, color: AppColors.expenseRed),
                     tooltip: 'Hapus Kategori',
                     onPressed: () => _handleDeleteCategory(context, ref, cat),
                   ),
@@ -84,15 +89,16 @@ class CategoriesScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF00A884),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.brandPrimary,
+        foregroundColor: AppColors.textInverse,
         child: const Icon(Icons.add),
         onPressed: () => _showAddCategoryDialog(context, ref),
       ),
     );
   }
 
-  void _showEditCategoryDialog(BuildContext context, WidgetRef ref, Category category) {
+  void _showEditCategoryDialog(
+      BuildContext context, WidgetRef ref, Category category) {
     final nameController = TextEditingController(text: category.name);
     showDialog(
       context: context,
@@ -101,6 +107,7 @@ class CategoriesScreen extends ConsumerWidget {
           title: const Text('Ubah Nama Kategori'),
           content: TextField(
             controller: nameController,
+            textCapitalization: TextCapitalization.words,
             autofocus: true,
             decoration: const InputDecoration(
               labelText: 'Nama Kategori',
@@ -114,14 +121,16 @@ class CategoriesScreen extends ConsumerWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00A884),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: AppColors.textInverse,
               ),
               onPressed: () {
                 final newName = nameController.text.trim();
                 if (newName.isNotEmpty) {
                   final updatedCat = category.copyWith(name: newName);
-                  ref.read(categoryListProvider.notifier).updateCategory(updatedCat);
+                  ref
+                      .read(categoryListProvider.notifier)
+                      .updateCategory(updatedCat);
                 }
                 Navigator.pop(context);
               },
@@ -142,6 +151,7 @@ class CategoriesScreen extends ConsumerWidget {
           title: const Text('Tambah Kategori Baru'),
           content: TextField(
             controller: nameController,
+            textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(
               hintText: 'Nama Kategori (misal: Tagihan)',
             ),
@@ -153,8 +163,8 @@ class CategoriesScreen extends ConsumerWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00A884),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: AppColors.textInverse,
               ),
               onPressed: () {
                 final name = nameController.text.trim();
@@ -178,11 +188,13 @@ class CategoriesScreen extends ConsumerWidget {
     );
   }
 
-  void _handleDeleteCategory(BuildContext context, WidgetRef ref, Category category) {
+  void _handleDeleteCategory(
+      BuildContext context, WidgetRef ref, Category category) {
     final allTransactions = HiveService.getAllTransactions();
     final allPlanned = HiveService.getAllPlannedExpenses();
 
-    final hasTransactions = allTransactions.any((t) => t.categoryId == category.id);
+    final hasTransactions =
+        allTransactions.any((t) => t.categoryId == category.id);
     final hasPlanned = allPlanned.any((pe) => pe.categoryId == category.id);
 
     if (hasTransactions || hasPlanned) {
@@ -208,7 +220,8 @@ class CategoriesScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Kategori'),
-        content: Text('Apakah Anda yakin ingin menghapus kategori "${category.name}"?'),
+        content: Text(
+            'Apakah Anda yakin ingin menghapus kategori "${category.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -216,15 +229,18 @@ class CategoriesScreen extends ConsumerWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.expenseRed,
+              foregroundColor: AppColors.textInverse,
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(categoryListProvider.notifier).deleteCategory(category.id);
+              ref
+                  .read(categoryListProvider.notifier)
+                  .deleteCategory(category.id);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Kategori "${category.name}" berhasil dihapus.'),
+                  content:
+                      Text('Kategori "${category.name}" berhasil dihapus.'),
                 ),
               );
             },

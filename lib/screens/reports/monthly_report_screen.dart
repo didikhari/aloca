@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../providers/period_provider.dart';
 import '../../providers/summary_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 
 class MonthlyReportScreen extends ConsumerWidget {
@@ -15,16 +19,19 @@ class MonthlyReportScreen extends ConsumerWidget {
     final isMasked = ref.watch(isBalanceMaskedProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        title: Text('Laporan: ${activePeriod.displayText}'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        title: Text(
+          'Laporan: ${activePeriod.displayText}',
+          style: AppTypography.headingLarge,
+        ),
+        backgroundColor: AppColors.surfaceWhite,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -39,11 +46,7 @@ class MonthlyReportScreen extends ConsumerWidget {
                         const Expanded(
                           child: Text(
                             'Posisi Finansial Berkelanjutan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
+                            style: AppTypography.headingMedium,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -52,31 +55,47 @@ class MonthlyReportScreen extends ConsumerWidget {
                             isMasked
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                            color: const Color(0xFF64748B),
+                            color: AppColors.textSecondary,
                             size: 20,
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          tooltip: isMasked ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                          tooltip: isMasked
+                              ? 'Tampilkan Nominal'
+                              : 'Sembunyikan Nominal',
                           onPressed: () {
-                            ref.read(isBalanceMaskedProvider.notifier).toggleMask();
+                            ref
+                                .read(isBalanceMaskedProvider.notifier)
+                                .toggleMask();
                           },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    _buildReportRow('Opening Balance (Bawaan Bulan Lalu)', summary.openingBalance, isMasked: isMasked),
-                    _buildReportRow('+ Total Income Bulan Ini', summary.totalIncome, color: Colors.green, isMasked: isMasked),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildReportRow('Opening Balance (Bawaan Bulan Lalu)',
+                        summary.openingBalance,
+                        isMasked: isMasked),
+                    _buildReportRow(
+                        '+ Total Income Bulan Ini', summary.totalIncome,
+                        color: AppColors.incomeGreen, isMasked: isMasked),
                     const Divider(),
-                    _buildReportRow('= Total Available Funds', summary.totalAvailable, isBold: true, isMasked: isMasked),
-                    _buildReportRow('- Total Pengeluaran Aktual', summary.totalActualExpenses, color: Colors.red, isMasked: isMasked),
+                    _buildReportRow(
+                        '= Total Available Funds', summary.totalAvailable,
+                        isBold: true, isMasked: isMasked),
+                    _buildReportRow('- Total Pengeluaran Aktual',
+                        summary.totalActualExpenses,
+                        color: AppColors.expenseRed, isMasked: isMasked),
                     const Divider(),
-                    _buildReportRow('= Closing Balance (Saldo Akhir)', summary.closingBalance, isBold: true, color: const Color(0xFF00A884), isMasked: isMasked),
+                    _buildReportRow('= Closing Balance (Saldo Akhir)',
+                        summary.closingBalance,
+                        isBold: true,
+                        color: AppColors.brandPrimary,
+                        isMasked: isMasked),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // Category Budget vs Actual Variance Table
               CustomCard(
@@ -85,17 +104,13 @@ class MonthlyReportScreen extends ConsumerWidget {
                   children: [
                     const Text(
                       'Laporan Variansi Anggaran per Kategori',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
-                      ),
+                      style: AppTypography.headingMedium,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        columnSpacing: 16,
+                        columnSpacing: AppSpacing.lg,
                         columns: const [
                           DataColumn(label: Text('Kategori')),
                           DataColumn(label: Text('Alokasi')),
@@ -107,28 +122,31 @@ class MonthlyReportScreen extends ConsumerWidget {
                           return DataRow(
                             cells: [
                               DataCell(Text(stat.category.name)),
-                              DataCell(Text(CurrencyFormatter.format(stat.allocated))),
-                              DataCell(Text(CurrencyFormatter.format(stat.actual))),
+                              DataCell(Text(
+                                  CurrencyFormatter.format(stat.allocated))),
+                              DataCell(
+                                  Text(CurrencyFormatter.format(stat.actual))),
                               DataCell(
                                 Text(
                                   CurrencyFormatter.format(stat.remaining),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: stat.remaining >= 0
-                                        ? Colors.green
-                                        : Colors.red,
+                                        ? AppColors.incomeGreen
+                                        : AppColors.expenseRed,
                                   ),
                                 ),
                               ),
                               DataCell(
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                      horizontal: AppSpacing.sm,
+                                      vertical: AppSpacing.xs),
                                   decoration: BoxDecoration(
                                     color: stat.remaining >= 0
-                                        ? const Color(0xFFDCFCE7)
-                                        : const Color(0xFFFEE2E2),
-                                    borderRadius: BorderRadius.circular(12),
+                                        ? AppColors.successBgLight
+                                        : AppColors.expenseBgLight,
+                                    borderRadius: AppRadius.radiusLg,
                                   ),
                                   child: Text(
                                     stat.status,
@@ -137,7 +155,7 @@ class MonthlyReportScreen extends ConsumerWidget {
                                       fontWeight: FontWeight.bold,
                                       color: stat.remaining >= 0
                                           ? const Color(0xFF166534)
-                                          : const Color(0xFF991B1B),
+                                          : AppColors.expenseRedDark,
                                     ),
                                   ),
                                 ),
@@ -171,17 +189,17 @@ class MonthlyReportScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                color: const Color(0xFF0F172A),
+                color: AppColors.textPrimary,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             isMasked ? 'Rp ••••••••' : CurrencyFormatter.format(amount),
             style: TextStyle(
               fontSize: 13,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: color ?? const Color(0xFF0F172A),
+              color: color ?? AppColors.textPrimary,
             ),
           ),
         ],

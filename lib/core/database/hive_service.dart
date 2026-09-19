@@ -20,7 +20,7 @@ class HiveService {
 
   static Future<void> init() async {
     await Hive.initFlutter();
-    
+
     await Hive.openBox(periodsBoxName);
     await Hive.openBox(incomesBoxName);
     await Hive.openBox(categoriesBoxName);
@@ -59,42 +59,35 @@ class HiveService {
           templateId: defaultTemplateId,
           categoryId: 'cat_housing',
           method: 'percentage',
-          value: 20.0,
+          value: 50.0,
         ),
         AllocationTemplateItem(
           id: 'item_2',
-          templateId: defaultTemplateId,
-          categoryId: 'cat_food',
-          method: 'percentage',
-          value: 15.0,
-        ),
-        AllocationTemplateItem(
-          id: 'item_3',
           templateId: defaultTemplateId,
           categoryId: 'cat_investment',
           method: 'percentage',
           value: 20.0,
         ),
         AllocationTemplateItem(
-          id: 'item_4',
+          id: 'item_3',
           templateId: defaultTemplateId,
           categoryId: 'cat_emergency',
           method: 'percentage',
-          value: 10.0,
+          value: 15.0,
+        ),
+        AllocationTemplateItem(
+          id: 'item_4',
+          templateId: defaultTemplateId,
+          categoryId: 'cat_lifestyle',
+          method: 'percentage',
+          value: 5.0,
         ),
         AllocationTemplateItem(
           id: 'item_5',
           templateId: defaultTemplateId,
-          categoryId: 'cat_lifestyle',
-          method: 'percentage',
-          value: 10.0,
-        ),
-        AllocationTemplateItem(
-          id: 'item_6',
-          templateId: defaultTemplateId,
           categoryId: 'cat_family',
           method: 'percentage',
-          value: 25.0,
+          value: 10.0,
         ),
       ];
 
@@ -108,7 +101,8 @@ class HiveService {
   static List<FinancialPeriod> getAllPeriods() {
     final box = Hive.box(periodsBoxName);
     final list = box.values
-        .map((e) => FinancialPeriod.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map(
+            (e) => FinancialPeriod.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
     list.sort((a, b) => a.id.compareTo(b.id));
     return list;
@@ -176,19 +170,22 @@ class HiveService {
   static List<AllocationTemplate> getAllTemplates() {
     final box = Hive.box(templatesBoxName);
     return box.values
-        .map((e) => AllocationTemplate.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map((e) =>
+            AllocationTemplate.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
 
   static List<AllocationTemplateItem> getTemplateItems(String templateId) {
     final box = Hive.box(templateItemsBoxName);
     return box.values
-        .map((e) => AllocationTemplateItem.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map((e) =>
+            AllocationTemplateItem.fromMap(Map<String, dynamic>.from(e as Map)))
         .where((item) => item.templateId == templateId)
         .toList();
   }
 
-  static Future<void> saveTemplate(AllocationTemplate template, List<AllocationTemplateItem> items) async {
+  static Future<void> saveTemplate(
+      AllocationTemplate template, List<AllocationTemplateItem> items) async {
     final tBox = Hive.box(templatesBoxName);
     await tBox.put(template.id, template.toMap());
 
@@ -277,7 +274,8 @@ class HiveService {
         .toList();
   }
 
-  static List<PlannedExpense> getPlannedExpensesForCategory(String periodId, String categoryId) {
+  static List<PlannedExpense> getPlannedExpensesForCategory(
+      String periodId, String categoryId) {
     final box = Hive.box(plannedExpensesBoxName);
     return box.values
         .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))

@@ -81,7 +81,9 @@ class PlannedExpense {
           : null,
       isPaid: map['isPaid'] as bool? ?? false,
       paidTransactionId: map['paidTransactionId'] as String?,
-      dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate'] as String) : null,
+      dueDate: map['dueDate'] != null
+          ? DateTime.parse(map['dueDate'] as String)
+          : null,
     );
   }
 }

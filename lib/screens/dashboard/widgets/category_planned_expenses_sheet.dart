@@ -9,6 +9,11 @@ import '../../../models/transaction.dart';
 import '../../../providers/expense_provider.dart';
 import '../../../providers/period_provider.dart';
 import '../../../providers/planned_expense_provider.dart';
+import '../../../providers/summary_provider.dart';
+import '../../../theme/app_colors.dart';
+import '../../../theme/app_radius.dart';
+import '../../../theme/app_spacing.dart';
+import '../../../theme/app_typography.dart';
 import '../../../widgets/custom_card.dart';
 
 class CategoryPlannedExpensesSheet extends ConsumerStatefulWidget {
@@ -63,13 +68,14 @@ class _CategoryPlannedExpensesSheetState
           children: [
             TextField(
               controller: titleController,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Nama Tagihan / Rencana',
                 hintText: 'Misal: Listrik PLN, Internet, Kos',
               ),
               autofocus: true,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
@@ -89,8 +95,8 @@ class _CategoryPlannedExpensesSheetState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00A884),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.brandPrimary,
+              foregroundColor: AppColors.textInverse,
             ),
             onPressed: () {
               final title = titleController.text.trim();
@@ -126,13 +132,14 @@ class _CategoryPlannedExpensesSheetState
           children: [
             TextField(
               controller: titleController,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Keterangan Transaksi',
                 hintText: 'Misal: Beli Kopi, Tambal Ban, Jajanan',
               ),
               autofocus: true,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
@@ -143,9 +150,10 @@ class _CategoryPlannedExpensesSheetState
                 prefixText: 'Rp ',
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: noteController,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Catatan (Opsional)',
               ),
@@ -159,8 +167,8 @@ class _CategoryPlannedExpensesSheetState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00A884),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.brandPrimary,
+              foregroundColor: AppColors.textInverse,
             ),
             onPressed: () {
               final title = titleController.text.trim();
@@ -181,14 +189,16 @@ class _CategoryPlannedExpensesSheetState
                   note: note.isNotEmpty ? note : null,
                 );
 
-                ref.read(transactionListProvider.notifier).addTransaction(newTx);
+                ref
+                    .read(transactionListProvider.notifier)
+                    .addTransaction(newTx);
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                       'Transaksi ${newTx.description} (${CurrencyFormatter.format(amount)}) berhasil ditambahkan.',
                     ),
-                    backgroundColor: const Color(0xFF00A884),
+                    backgroundColor: AppColors.brandPrimary,
                   ),
                 );
               }
@@ -210,8 +220,8 @@ class _CategoryPlannedExpensesSheetState
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.payment, color: Color(0xFF00A884)),
-            const SizedBox(width: 8),
+            const Icon(Icons.payment, color: AppColors.brandPrimary),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 'Bayar: ${item.title}',
@@ -226,13 +236,9 @@ class _CategoryPlannedExpensesSheetState
           children: [
             Text(
               'Rencana Nominal: ${CurrencyFormatter.format(item.plannedAmount)}',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTypography.bodySecondary,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             TextField(
               controller: actualAmountController,
               keyboardType: TextInputType.number,
@@ -244,10 +250,10 @@ class _CategoryPlannedExpensesSheetState
               ),
               autofocus: true,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             const Text(
               'Jika nominal aktual melebihi rencana, aplikasi akan memberikan indikator "Di atas rencana".',
-              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+              style: AppTypography.labelSmall,
             ),
           ],
         ),
@@ -258,8 +264,8 @@ class _CategoryPlannedExpensesSheetState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00A884),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.brandPrimary,
+              foregroundColor: AppColors.textInverse,
             ),
             onPressed: () {
               final actualAmount =
@@ -276,7 +282,7 @@ class _CategoryPlannedExpensesSheetState
                     content: Text(
                       '${item.title} sebesar ${CurrencyFormatter.format(actualAmount)} berhasil dibayarkan!',
                     ),
-                    backgroundColor: const Color(0xFF00A884),
+                    backgroundColor: AppColors.brandPrimary,
                   ),
                 );
               }
@@ -303,15 +309,18 @@ class _CategoryPlannedExpensesSheetState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.expenseRed,
+              foregroundColor: AppColors.textInverse,
             ),
             onPressed: () {
-              ref.read(transactionListProvider.notifier).deleteTransaction(tx.id);
+              ref
+                  .read(transactionListProvider.notifier)
+                  .deleteTransaction(tx.id);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Transaksi ${tx.description} berhasil dihapus.'),
+                  content:
+                      Text('Transaksi ${tx.description} berhasil dihapus.'),
                 ),
               );
             },
@@ -330,7 +339,8 @@ class _CategoryPlannedExpensesSheetState
 
     final allTransactions = ref.watch(transactionListProvider);
     final categoryTransactions = allTransactions
-        .where((tx) => tx.categoryId == widget.category.id && tx.type == 'Expense')
+        .where(
+            (tx) => tx.categoryId == widget.category.id && tx.type == 'Expense')
         .toList();
 
     final paidTxIds = categoryPlanned
@@ -338,9 +348,8 @@ class _CategoryPlannedExpensesSheetState
         .where((id) => id != null)
         .toSet();
 
-    final unplannedTransactions = categoryTransactions
-        .where((tx) => !paidTxIds.contains(tx.id))
-        .toList();
+    final unplannedTransactions =
+        categoryTransactions.where((tx) => !paidTxIds.contains(tx.id)).toList();
     unplannedTransactions.sort((a, b) => b.date.compareTo(a.date));
 
     final paidCount = categoryPlanned.where((pe) => pe.isPaid).length;
@@ -349,18 +358,25 @@ class _CategoryPlannedExpensesSheetState
         categoryPlanned.fold<int>(0, (sum, pe) => sum + pe.plannedAmount);
     final totalUnplannedNominal =
         unplannedTransactions.fold<int>(0, (sum, tx) => sum + tx.amount);
-    final remainingBudget = widget.allocatedAmount - widget.actualExpense;
+    final monthlySummary = ref.watch(monthlySummaryProvider);
+    final catStatusList = monthlySummary.categoryStatuses
+        .where((cs) => cs.category.id == widget.category.id);
+    final catStatus = catStatusList.isNotEmpty ? catStatusList.first : null;
+    final allocatedAmount = catStatus?.allocated ?? widget.allocatedAmount;
+    final actualExpense = catStatus?.actual ?? widget.actualExpense;
+    final remainingBudget =
+        catStatus?.remaining ?? (allocatedAmount - actualExpense);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: AppRadius.radiusSheet,
       ),
       padding: EdgeInsets.only(
-        top: 16,
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        top: AppSpacing.lg,
+        left: AppSpacing.lg,
+        right: AppSpacing.lg,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
@@ -376,29 +392,29 @@ class _CategoryPlannedExpensesSheetState
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppRadius.handle),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Category Header Card
           CustomCard(
-            backgroundColor: const Color(0xFFF8FAFC),
+            backgroundColor: AppColors.pageBackground,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: const Color(0x1A00A884),
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.brandTint,
+                        borderRadius: AppRadius.radiusMd,
                       ),
                       child: const Icon(
                         Icons.category_outlined,
-                        color: Color(0xFF00A884),
+                        color: AppColors.brandPrimary,
                         size: 20,
                       ),
                     ),
@@ -406,37 +422,32 @@ class _CategoryPlannedExpensesSheetState
                     Expanded(
                       child: Text(
                         widget.category.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
-                        ),
+                        style: AppTypography.headingMedium,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: paidCount == totalCount && totalCount > 0
-                            ? const Color(0xFFDCFCE7)
-                            : const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(12),
+                            ? AppColors.successBgLight
+                            : AppColors.warningBadgeBg,
+                        borderRadius: AppRadius.radiusLg,
                       ),
                       child: Text(
                         '$paidCount/$totalCount Lunas',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                        style: AppTypography.labelStandard.copyWith(
                           color: paidCount == totalCount && totalCount > 0
                               ? const Color(0xFF166534)
                               : const Color(0xFF92400E),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
                     Expanded(
@@ -445,15 +456,14 @@ class _CategoryPlannedExpensesSheetState
                         children: [
                           const Text(
                             'Alokasi Anggaran',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: AppTypography.labelSmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            CurrencyFormatter.format(widget.allocatedAmount),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                            CurrencyFormatter.format(allocatedAmount),
+                            style: AppTypography.labelStandard.copyWith(
+                              color: AppColors.textPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -467,15 +477,14 @@ class _CategoryPlannedExpensesSheetState
                         children: [
                           const Text(
                             'Total Rencana',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: AppTypography.labelSmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             CurrencyFormatter.format(totalPlannedNominal),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                            style: AppTypography.labelStandard.copyWith(
+                              color: AppColors.textPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -485,7 +494,7 @@ class _CategoryPlannedExpensesSheetState
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
@@ -494,16 +503,14 @@ class _CategoryPlannedExpensesSheetState
                         children: [
                           const Text(
                             'Non-Rencana',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: AppTypography.labelSmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             CurrencyFormatter.format(totalUnplannedNominal),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFFEF4444),
+                            style: AppTypography.labelStandard.copyWith(
+                              color: AppColors.expenseRed,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -517,18 +524,17 @@ class _CategoryPlannedExpensesSheetState
                         children: [
                           const Text(
                             'Sisa Anggaran',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: AppTypography.labelSmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             CurrencyFormatter.format(remainingBudget),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            style: AppTypography.labelStandard.copyWith(
                               color: remainingBudget >= 0
-                                  ? const Color(0xFF00A884)
-                                  : const Color(0xFFEF4444),
+                                  ? AppColors.brandPrimary
+                                  : AppColors.expenseRed,
+                              fontWeight: FontWeight.bold,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -542,7 +548,7 @@ class _CategoryPlannedExpensesSheetState
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Tab Switcher Buttons
           Row(
@@ -554,9 +560,9 @@ class _CategoryPlannedExpensesSheetState
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: _selectedTab == 0
-                          ? const Color(0xFF00A884)
-                          : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
+                          ? AppColors.brandPrimary
+                          : AppColors.chipSubSurface,
+                      borderRadius: AppRadius.radiusMd,
                     ),
                     child: Center(
                       child: Text(
@@ -565,15 +571,15 @@ class _CategoryPlannedExpensesSheetState
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: _selectedTab == 0
-                              ? Colors.white
-                              : const Color(0xFF64748B),
+                              ? AppColors.textInverse
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedTab = 1),
@@ -581,9 +587,9 @@ class _CategoryPlannedExpensesSheetState
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: _selectedTab == 1
-                          ? const Color(0xFF00A884)
-                          : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
+                          ? AppColors.brandPrimary
+                          : AppColors.chipSubSurface,
+                      borderRadius: AppRadius.radiusMd,
                     ),
                     child: Center(
                       child: Text(
@@ -592,8 +598,8 @@ class _CategoryPlannedExpensesSheetState
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: _selectedTab == 1
-                              ? Colors.white
-                              : const Color(0xFF64748B),
+                              ? AppColors.textInverse
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -603,7 +609,7 @@ class _CategoryPlannedExpensesSheetState
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Tab Content
           if (_selectedTab == 0) ...[
@@ -614,31 +620,28 @@ class _CategoryPlannedExpensesSheetState
                 const Expanded(
                   child: Text(
                     'Daftar Rencana Pengeluaran',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
-                    ),
+                    style: AppTypography.sectionTitle,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 TextButton.icon(
                   onPressed: _showAddPlannedDialog,
-                  icon: const Icon(Icons.add, size: 18, color: Color(0xFF00A884)),
+                  icon: const Icon(Icons.add,
+                      size: 18, color: AppColors.brandPrimary),
                   label: const Text(
                     'Tambah Item',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF00A884),
+                      color: AppColors.brandPrimary,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
 
             // Planned Items List
             Expanded(
@@ -652,16 +655,13 @@ class _CategoryPlannedExpensesSheetState
                             size: 48,
                             color: Colors.grey[300],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           Text(
                             'Belum ada rencana pengeluaran untuk ${widget.category.name}.',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
+                            style: AppTypography.bodySecondary,
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.md),
                           OutlinedButton.icon(
                             onPressed: _showAddPlannedDialog,
                             icon: const Icon(Icons.add, size: 16),
@@ -672,7 +672,8 @@ class _CategoryPlannedExpensesSheetState
                     )
                   : ListView.separated(
                       itemCount: categoryPlanned.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (ctx, index) {
                         final item = categoryPlanned[index];
                         return _buildPlannedItemTile(context, item);
@@ -687,31 +688,28 @@ class _CategoryPlannedExpensesSheetState
                 const Expanded(
                   child: Text(
                     'Transaksi Non-Rencana',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
-                    ),
+                    style: AppTypography.sectionTitle,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 TextButton.icon(
                   onPressed: _showAddUnplannedTransactionDialog,
-                  icon: const Icon(Icons.add, size: 18, color: Color(0xFF00A884)),
+                  icon: const Icon(Icons.add,
+                      size: 18, color: AppColors.brandPrimary),
                   label: const Text(
                     'Tambah Transaksi',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF00A884),
+                      color: AppColors.brandPrimary,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
 
             // Unplanned Transactions List
             Expanded(
@@ -725,16 +723,13 @@ class _CategoryPlannedExpensesSheetState
                             size: 48,
                             color: Colors.grey[300],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           Text(
                             'Tidak ada transaksi diluar rencana untuk ${widget.category.name}.',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
+                            style: AppTypography.bodySecondary,
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.md),
                           OutlinedButton.icon(
                             onPressed: _showAddUnplannedTransactionDialog,
                             icon: const Icon(Icons.add, size: 16),
@@ -745,7 +740,8 @@ class _CategoryPlannedExpensesSheetState
                     )
                   : ListView.separated(
                       itemCount: unplannedTransactions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (ctx, index) {
                         final tx = unplannedTransactions[index];
                         return _buildUnplannedTransactionTile(context, tx);
@@ -763,8 +759,8 @@ class _CategoryPlannedExpensesSheetState
     final isOverrun = item.isPaidAbovePlanned;
 
     return CustomCard(
-      padding: const EdgeInsets.all(12),
-      backgroundColor: isPaid ? const Color(0xFFF0FDF4) : Colors.white,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      backgroundColor: isPaid ? AppColors.paidTileBg : AppColors.surfaceWhite,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -786,25 +782,26 @@ class _CategoryPlannedExpensesSheetState
                 shape: BoxShape.circle,
                 color: isPaid
                     ? (isOverrun
-                        ? const Color(0xFFF59E0B)
-                        : const Color(0xFF00A884))
-                    : Colors.white,
+                        ? AppColors.warningAmber
+                        : AppColors.brandPrimary)
+                    : AppColors.surfaceWhite,
                 border: Border.all(
                   color: isPaid
                       ? (isOverrun
-                          ? const Color(0xFFF59E0B)
-                          : const Color(0xFF00A884))
-                      : const Color(0xFF94A3B8),
+                          ? AppColors.warningAmber
+                          : AppColors.brandPrimary)
+                      : AppColors.textMuted,
                   width: 2,
                 ),
               ),
               child: isPaid
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  ? const Icon(Icons.check,
+                      size: 16, color: AppColors.textInverse)
                   : null,
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
 
           // Content Title & Amounts
           Expanded(
@@ -818,8 +815,8 @@ class _CategoryPlannedExpensesSheetState
                     fontWeight: FontWeight.w600,
                     decoration: isPaid ? TextDecoration.lineThrough : null,
                     color: isPaid
-                        ? const Color(0xFF64748B)
-                        : const Color(0xFF0F172A),
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -828,22 +825,18 @@ class _CategoryPlannedExpensesSheetState
                   children: [
                     Text(
                       'Rencana: ${CurrencyFormatter.format(item.plannedAmount)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                      ),
+                      style: AppTypography.labelStandard,
                     ),
                     if (isPaid && item.actualPaidAmount != null) ...[
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           '• Dibayar: ${CurrencyFormatter.format(item.actualPaidAmount!)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          style: AppTypography.labelStandard.copyWith(
                             color: isOverrun
-                                ? const Color(0xFFD97706)
+                                ? AppColors.warningAmberDark
                                 : const Color(0xFF166534),
+                            fontWeight: FontWeight.w600,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -854,28 +847,27 @@ class _CategoryPlannedExpensesSheetState
 
                 // Visual Overrun Warning Indicator if actual paid > planned
                 if (isOverrun) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFF59E0B)),
+                      color: AppColors.warningBadgeBg,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(color: AppColors.warningAmber),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.warning_amber_rounded,
-                            size: 12, color: Color(0xFFD97706)),
-                        const SizedBox(width: 4),
+                            size: 12, color: AppColors.warningAmberDark),
+                        const SizedBox(width: AppSpacing.xs),
                         Flexible(
                           child: Text(
                             'Di atas rencana (+${CurrencyFormatter.format(item.overrunAmount)})',
-                            style: const TextStyle(
-                              fontSize: 10,
+                            style: AppTypography.captionBadge.copyWith(
+                              color: const Color(0xFFB45309),
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFB45309),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -888,14 +880,14 @@ class _CategoryPlannedExpensesSheetState
             ),
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
 
           // Action Button / Popup Menu
           if (!isPaid)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00A884),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: AppColors.textInverse,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 minimumSize: Size.zero,
@@ -906,7 +898,8 @@ class _CategoryPlannedExpensesSheetState
             )
           else
             IconButton(
-              icon: const Icon(Icons.undo, size: 18, color: Color(0xFF64748B)),
+              icon: const Icon(Icons.undo,
+                  size: 18, color: AppColors.textSecondary),
               tooltip: 'Batalkan Pembayaran',
               onPressed: () {
                 ref
@@ -916,7 +909,8 @@ class _CategoryPlannedExpensesSheetState
             ),
 
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF94A3B8)),
+            icon: const Icon(Icons.more_vert,
+                size: 18, color: AppColors.textMuted),
             onSelected: (val) {
               if (val == 'delete') {
                 ref
@@ -929,9 +923,11 @@ class _CategoryPlannedExpensesSheetState
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Hapus Rencana', style: TextStyle(color: Colors.red)),
+                    Icon(Icons.delete_outline,
+                        size: 16, color: AppColors.expenseRed),
+                    SizedBox(width: AppSpacing.sm),
+                    Text('Hapus Rencana',
+                        style: TextStyle(color: AppColors.expenseRed)),
                   ],
                 ),
               ),
@@ -944,35 +940,31 @@ class _CategoryPlannedExpensesSheetState
 
   Widget _buildUnplannedTransactionTile(BuildContext context, Transaction tx) {
     return CustomCard(
-      padding: const EdgeInsets.all(12),
-      backgroundColor: Colors.white,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      backgroundColor: AppColors.surfaceWhite,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.expenseBgLight,
+              borderRadius: AppRadius.radiusSm,
             ),
             child: const Icon(
               Icons.receipt_long_outlined,
               size: 20,
-              color: Color(0xFFEF4444),
+              color: AppColors.expenseRed,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   tx.description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
-                  ),
+                  style: AppTypography.bodyPrimary,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
@@ -980,19 +972,15 @@ class _CategoryPlannedExpensesSheetState
                   children: [
                     Text(
                       DateFormat('d MMM yyyy', 'id_ID').format(tx.date),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                      ),
+                      style: AppTypography.labelStandard,
                     ),
                     if (tx.note != null && tx.note!.isNotEmpty) ...[
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           '• ${tx.note}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF94A3B8),
+                          style: AppTypography.labelStandard.copyWith(
+                            color: AppColors.textMuted,
                             fontStyle: FontStyle.italic,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -1004,22 +992,21 @@ class _CategoryPlannedExpensesSheetState
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 CurrencyFormatter.format(tx.amount),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFEF4444),
+                style: AppTypography.bodySecondary.copyWith(
+                  color: AppColors.expenseRed,
                 ),
               ),
             ],
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF94A3B8)),
+            icon: const Icon(Icons.more_vert,
+                size: 18, color: AppColors.textMuted),
             onSelected: (val) {
               if (val == 'delete') {
                 _confirmDeleteUnplannedTransaction(tx);
@@ -1030,9 +1017,11 @@ class _CategoryPlannedExpensesSheetState
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Hapus Transaksi', style: TextStyle(color: Colors.red)),
+                    Icon(Icons.delete_outline,
+                        size: 16, color: AppColors.expenseRed),
+                    SizedBox(width: AppSpacing.sm),
+                    Text('Hapus Transaksi',
+                        style: TextStyle(color: AppColors.expenseRed)),
                   ],
                 ),
               ),

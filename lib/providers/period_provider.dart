@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/hive_service.dart';
 import '../../models/financial_period.dart';
 
-final periodListProvider = StateNotifierProvider<PeriodListNotifier, List<FinancialPeriod>>((ref) {
+final periodListProvider =
+    StateNotifierProvider<PeriodListNotifier, List<FinancialPeriod>>((ref) {
   return PeriodListNotifier();
 });
 
@@ -14,17 +15,19 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
 
   void loadPeriods() {
     var periods = HiveService.getAllPeriods();
-    if (periods.isEmpty) {
-      final now = DateTime.now();
-      final initialPeriodId = FinancialPeriod.generateId(now.year, now.month);
-      final initialPeriod = FinancialPeriod(
-        id: initialPeriodId,
+    final now = DateTime.now();
+    final currentPeriodId = FinancialPeriod.generateId(now.year, now.month);
+
+    final hasCurrent = periods.any((p) => p.id == currentPeriodId);
+    if (!hasCurrent) {
+      final currentPeriod = FinancialPeriod(
+        id: currentPeriodId,
         year: now.year,
         month: now.month,
         openingBalance: 0,
       );
-      HiveService.savePeriod(initialPeriod);
-      periods = [initialPeriod];
+      HiveService.savePeriod(currentPeriod);
+      periods = HiveService.getAllPeriods();
     }
     recalculateAllPeriodsChain(periods);
   }
@@ -32,7 +35,8 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
   /// Recalculates Opening Balances for all periods sequentially:
   /// Closing Balance (M-1) = Opening (M-1) + Income (M-1) - Expense (M-1)
   /// Opening Balance (M) = Closing Balance (M-1)
-  Future<void> recalculateAllPeriodsChain([List<FinancialPeriod>? currentPeriods]) async {
+  Future<void> recalculateAllPeriodsChain(
+      [List<FinancialPeriod>? currentPeriods]) async {
     final list = currentPeriods ?? HiveService.getAllPeriods();
     list.sort((a, b) => a.id.compareTo(b.id));
 
@@ -45,9 +49,12 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
         final prevExpenses = HiveService.getTransactionsForPeriod(prevPeriod.id)
             .where((t) => t.type == 'Expense');
 
-        final totalPrevIncome = prevIncomes.fold<int>(0, (sum, item) => sum + item.amount);
-        final totalPrevExpense = prevExpenses.fold<int>(0, (sum, item) => sum + item.amount);
-        final calculatedClosing = prevPeriod.openingBalance + totalPrevIncome - totalPrevExpense;
+        final totalPrevIncome =
+            prevIncomes.fold<int>(0, (sum, item) => sum + item.amount);
+        final totalPrevExpense =
+            prevExpenses.fold<int>(0, (sum, item) => sum + item.amount);
+        final calculatedClosing =
+            prevPeriod.openingBalance + totalPrevIncome - totalPrevExpense;
 
         if (period.openingBalance != calculatedClosing) {
           period = period.copyWith(openingBalance: calculatedClosing);
@@ -68,7 +75,7 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
     final all = HiveService.getAllPeriods();
     all.sort((a, b) => a.id.compareTo(b.id));
     int opening = 0;
-    
+
     // Find latest period before this one
     final prevPeriods = all.where((p) => p.id.compareTo(periodId) < 0).toList();
     if (prevPeriods.isNotEmpty) {
@@ -76,8 +83,10 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
       final prevIncomes = HiveService.getIncomesForPeriod(prev.id);
       final prevExpenses = HiveService.getTransactionsForPeriod(prev.id)
           .where((t) => t.type == 'Expense');
-      final totalIncome = prevIncomes.fold<int>(0, (sum, item) => sum + item.amount);
-      final totalExpense = prevExpenses.fold<int>(0, (sum, item) => sum + item.amount);
+      final totalIncome =
+          prevIncomes.fold<int>(0, (sum, item) => sum + item.amount);
+      final totalExpense =
+          prevExpenses.fold<int>(0, (sum, item) => sum + item.amount);
       opening = prev.openingBalance + totalIncome - totalExpense;
     }
 
@@ -104,11 +113,16 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
 
 final activePeriodIdProvider = StateProvider<String>((ref) {
   final periods = ref.watch(periodListProvider);
+  final now = DateTime.now();
+  final currentPeriodId = FinancialPeriod.generateId(now.year, now.month);
+
+  if (periods.any((p) => p.id == currentPeriodId)) {
+    return currentPeriodId;
+  }
   if (periods.isNotEmpty) {
     return periods.last.id;
   }
-  final now = DateTime.now();
-  return FinancialPeriod.generateId(now.year, now.month);
+  return currentPeriodId;
 });
 
 final activePeriodProvider = Provider<FinancialPeriod>((ref) {

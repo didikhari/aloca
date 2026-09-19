@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/hive_service.dart';
 import '../../models/category.dart';
 
-final categoryListProvider = StateNotifierProvider<CategoryNotifier, List<Category>>((ref) {
+final categoryListProvider =
+    StateNotifierProvider<CategoryNotifier, List<Category>>((ref) {
   return CategoryNotifier();
 });
 
