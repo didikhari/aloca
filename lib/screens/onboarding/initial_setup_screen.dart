@@ -147,6 +147,27 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
       _initAllocationFields();
     }
 
+    if (_currentStep == 2) {
+      final activeCategories =
+          ref.read(categoryListProvider).where((c) => c.isActive).toList();
+      for (final cat in activeCategories) {
+        final method = _methods[cat.id] ?? 'percentage';
+        if (method != 'remaining') {
+          final text = _controllers[cat.id]?.text ?? '0';
+          final val = method == 'fixed'
+              ? CurrencyFormatter.parse(text).toDouble()
+              : (double.tryParse(text) ?? 0.0);
+
+          if (val <= 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Alokasi ${cat.name} belum diatur')),
+            );
+            return;
+          }
+        }
+      }
+    }
+
     if (_currentStep < 3) {
       setState(() {
         _currentStep++;
