@@ -739,6 +739,19 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
     final controller =
         _controllers[cat.id] ??= TextEditingController(text: '0');
     final valController = TextEditingController(text: controller.text);
+    final valFocusNode = FocusNode();
+
+    valFocusNode.addListener(() {
+      if (valFocusNode.hasFocus) {
+        if (valController.text == '0') {
+          valController.clear();
+        }
+      } else {
+        if (valController.text.trim().isEmpty) {
+          valController.text = '0';
+        }
+      }
+    });
 
     showModalBottomSheet(
       context: context,
@@ -814,9 +827,12 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
                                 fontSize: 11,
                               ),
                               onSelected: (selected) {
-                                if (selected) {
-                                  setSheetState(
-                                      () => selectedMethod = 'percentage');
+                                if (selected && selectedMethod != 'percentage') {
+                                  valFocusNode.unfocus();
+                                  setSheetState(() {
+                                    selectedMethod = 'percentage';
+                                    valController.text = '0';
+                                  });
                                 }
                               },
                             ),
@@ -842,8 +858,12 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
                                 fontSize: 11,
                               ),
                               onSelected: (selected) {
-                                if (selected) {
-                                  setSheetState(() => selectedMethod = 'fixed');
+                                if (selected && selectedMethod != 'fixed') {
+                                  valFocusNode.unfocus();
+                                  setSheetState(() {
+                                    selectedMethod = 'fixed';
+                                    valController.text = '0';
+                                  });
                                 }
                               },
                             ),
@@ -869,9 +889,12 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
                                 fontSize: 11,
                               ),
                               onSelected: (selected) {
-                                if (selected) {
-                                  setSheetState(
-                                      () => selectedMethod = 'remaining');
+                                if (selected && selectedMethod != 'remaining') {
+                                  valFocusNode.unfocus();
+                                  setSheetState(() {
+                                    selectedMethod = 'remaining';
+                                    valController.text = '0';
+                                  });
                                 }
                               },
                             ),
@@ -882,11 +905,30 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
                       if (selectedMethod != 'remaining') ...[
                         TextField(
                           controller: valController,
+                          focusNode: valFocusNode,
                           keyboardType: TextInputType.number,
                           inputFormatters: selectedMethod == 'fixed'
                               ? [ThousandsSeparatorInputFormatter()]
                               : null,
-                          onChanged: (_) => setSheetState(() {}),
+                          onTap: () {
+                            if (valController.text == '0') {
+                              valController.clear();
+                            }
+                          },
+                          onChanged: (val) {
+                            if (val.length > 1 &&
+                                val.startsWith('0') &&
+                                !val.startsWith('0.')) {
+                              final cleaned = val.replaceFirst(RegExp(r'^0+'), '');
+                              final textToSet = cleaned.isEmpty ? '0' : cleaned;
+                              valController.value = TextEditingValue(
+                                text: textToSet,
+                                selection: TextSelection.collapsed(
+                                    offset: textToSet.length),
+                              );
+                            }
+                            setSheetState(() {});
+                          },
                           decoration: InputDecoration(
                             labelText: selectedMethod == 'percentage'
                                 ? 'Nilai Persentase (%)'
@@ -949,7 +991,10 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
                               onPressed: () {
                                 setState(() {
                                   _methods[cat.id] = selectedMethod;
-                                  controller.text = valController.text;
+                                  controller.text =
+                                      valController.text.trim().isEmpty
+                                          ? '0'
+                                          : valController.text;
                                 });
                                 Navigator.pop(ctx);
                               },
@@ -966,7 +1011,10 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
           },
         );
       },
-    );
+    ).then((_) {
+      valFocusNode.dispose();
+      valController.dispose();
+    });
   }
 
   // STEP 3: Review
