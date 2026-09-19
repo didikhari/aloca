@@ -22,7 +22,9 @@ class PlannedExpenseListNotifier extends StateNotifier<List<PlannedExpense>> {
   }
 
   void loadPlannedExpenses() {
-    state = HiveService.getPlannedExpensesForPeriod(activePeriodId);
+    final list = HiveService.getPlannedExpensesForPeriod(activePeriodId);
+    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    state = list;
   }
 
   Future<void> addPlannedExpense({

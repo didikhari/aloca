@@ -73,7 +73,7 @@ class Category {
       Category(
         id: 'cat_investment',
         name: 'Tabungan & Investasi',
-        colorHex: '#10B981',
+        colorHex: '#2563EB',
         iconName: 'trending_up',
         displayOrder: 2,
       ),

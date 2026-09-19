@@ -40,6 +40,21 @@ class HiveService {
       for (final cat in Category.defaultCategories()) {
         await categoriesBox.put(cat.id, cat.toMap());
       }
+    } else {
+      for (final defaultCat in Category.defaultCategories()) {
+        final existingMap = categoriesBox.get(defaultCat.id);
+        if (existingMap != null && existingMap is Map) {
+          final cat = Category.fromMap(Map<String, dynamic>.from(existingMap));
+          if (cat.colorHex != defaultCat.colorHex ||
+              cat.iconName != defaultCat.iconName) {
+            final updatedCat = cat.copyWith(
+              colorHex: defaultCat.colorHex,
+              iconName: defaultCat.iconName,
+            );
+            await categoriesBox.put(defaultCat.id, updatedCat.toMap());
+          }
+        }
+      }
     }
 
     final templatesBox = Hive.box(templatesBoxName);
@@ -268,26 +283,32 @@ class HiveService {
   // --- Planned Expense Operations ---
   static List<PlannedExpense> getPlannedExpensesForPeriod(String periodId) {
     final box = Hive.box(plannedExpensesBoxName);
-    return box.values
+    final list = box.values
         .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))
         .where((pe) => pe.periodId == periodId)
         .toList();
+    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return list;
   }
 
   static List<PlannedExpense> getPlannedExpensesForCategory(
       String periodId, String categoryId) {
     final box = Hive.box(plannedExpensesBoxName);
-    return box.values
+    final list = box.values
         .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))
         .where((pe) => pe.periodId == periodId && pe.categoryId == categoryId)
         .toList();
+    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return list;
   }
 
   static List<PlannedExpense> getAllPlannedExpenses() {
     final box = Hive.box(plannedExpensesBoxName);
-    return box.values
+    final list = box.values
         .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
+    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return list;
   }
 
   static Future<void> savePlannedExpense(PlannedExpense plannedExpense) async {

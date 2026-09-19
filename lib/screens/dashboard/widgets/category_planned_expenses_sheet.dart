@@ -336,6 +336,8 @@ class _CategoryPlannedExpensesSheetState
     final allPlanned = ref.watch(plannedExpenseListProvider);
     final categoryPlanned =
         allPlanned.where((pe) => pe.categoryId == widget.category.id).toList();
+    categoryPlanned
+        .sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
 
     final allTransactions = ref.watch(transactionListProvider);
     final categoryTransactions = allTransactions
@@ -368,7 +370,7 @@ class _CategoryPlannedExpensesSheetState
         catStatus?.remaining ?? (allocatedAmount - actualExpense);
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceWhite,
         borderRadius: AppRadius.radiusSheet,
       ),
@@ -408,7 +410,7 @@ class _CategoryPlannedExpensesSheetState
                   children: [
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppColors.brandTint,
                         borderRadius: AppRadius.radiusMd,
                       ),
@@ -947,7 +949,7 @@ class _CategoryPlannedExpensesSheetState
         children: [
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.expenseBgLight,
               borderRadius: AppRadius.radiusSm,
             ),
