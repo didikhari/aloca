@@ -6,6 +6,8 @@ import '../../models/allocation_template.dart';
 import '../../models/allocation.dart';
 import '../../models/transaction.dart';
 import '../../models/planned_expense.dart';
+import '../../models/recurring_expense.dart';
+import '../../models/monthly_expense.dart';
 
 class HiveService {
   static const String periodsBoxName = 'financial_periods';
@@ -16,6 +18,8 @@ class HiveService {
   static const String allocationsBoxName = 'allocations';
   static const String transactionsBoxName = 'transactions';
   static const String plannedExpensesBoxName = 'planned_expenses';
+  static const String recurringExpensesBoxName = 'recurring_expenses';
+  static const String monthlyExpensesBoxName = 'monthly_expenses';
   static const String settingsBoxName = 'app_settings';
 
   static Future<void> init() async {
@@ -29,6 +33,8 @@ class HiveService {
     await Hive.openBox(allocationsBoxName);
     await Hive.openBox(transactionsBoxName);
     await Hive.openBox(plannedExpensesBoxName);
+    await Hive.openBox(recurringExpensesBoxName);
+    await Hive.openBox(monthlyExpensesBoxName);
     await Hive.openBox(settingsBoxName);
 
     await _seedDefaultsIfNeeded();
@@ -108,6 +114,13 @@ class HiveService {
 
       for (final item in defaultItems) {
         await itemsBox.put(item.id, item.toMap());
+      }
+    }
+
+    final recurringBox = Hive.box(recurringExpensesBoxName);
+    if (recurringBox.isEmpty) {
+      for (final rec in RecurringExpense.defaultRecurringExpenses()) {
+        await recurringBox.put(rec.id, rec.toMap());
       }
     }
   }
@@ -280,46 +293,130 @@ class HiveService {
     await box.delete(transactionId);
   }
 
-  // --- Planned Expense Operations ---
-  static List<PlannedExpense> getPlannedExpensesForPeriod(String periodId) {
-    final box = Hive.box(plannedExpensesBoxName);
+  // --- Recurring Expense Operations ---
+  static List<RecurringExpense> getAllRecurringExpenses() {
+    final box = Hive.box(recurringExpensesBoxName);
     final list = box.values
-        .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))
-        .where((pe) => pe.periodId == periodId)
+        .map((e) => RecurringExpense.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    list.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    return list;
+  }
+
+  static List<RecurringExpense> getRecurringExpensesForCategory(String categoryId) {
+    final box = Hive.box(recurringExpensesBoxName);
+    final list = box.values
+        .map((e) => RecurringExpense.fromMap(Map<String, dynamic>.from(e as Map)))
+        .where((re) => re.categoryId == categoryId)
+        .toList();
+    list.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    return list;
+  }
+
+  static Future<void> saveRecurringExpense(RecurringExpense expense) async {
+    final box = Hive.box(recurringExpensesBoxName);
+    await box.put(expense.id, expense.toMap());
+  }
+
+  static Future<void> deleteRecurringExpense(String expenseId) async {
+    final box = Hive.box(recurringExpensesBoxName);
+    await box.delete(expenseId);
+  }
+
+  // --- Monthly Expense Operations ---
+  static List<MonthlyExpense> getMonthlyExpensesForPeriod(String periodId) {
+    final box = Hive.box(monthlyExpensesBoxName);
+    var list = box.values
+        .map((e) => MonthlyExpense.fromMap(Map<String, dynamic>.from(e as Map)))
+        .where((me) => me.periodId == periodId)
+        .toList();
+
+    // Fallback: check legacy box if new box is empty
+    if (list.isEmpty) {
+      final oldBox = Hive.box(plannedExpensesBoxName);
+      final oldList = oldBox.values
+          .map((e) => MonthlyExpense.fromMap(Map<String, dynamic>.from(e as Map)))
+          .where((me) => me.periodId == periodId)
+          .toList();
+      if (oldList.isNotEmpty) {
+        list = oldList;
+      }
+    }
+
+    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return list;
+  }
+
+  static List<MonthlyExpense> getMonthlyExpensesForCategory(
+      String periodId, String categoryId) {
+    return getMonthlyExpensesForPeriod(periodId)
+        .where((me) => me.categoryId == categoryId)
+        .toList();
+  }
+
+  static List<MonthlyExpense> getAllMonthlyExpenses() {
+    final box = Hive.box(monthlyExpensesBoxName);
+    final list = box.values
+        .map((e) => MonthlyExpense.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
     list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     return list;
   }
+
+  static Future<void> saveMonthlyExpense(MonthlyExpense expense) async {
+    final box = Hive.box(monthlyExpensesBoxName);
+    await box.put(expense.id, expense.toMap());
+  }
+
+  static Future<void> deleteMonthlyExpense(String expenseId) async {
+    final box = Hive.box(monthlyExpensesBoxName);
+    await box.delete(expenseId);
+    final oldBox = Hive.box(plannedExpensesBoxName);
+    if (oldBox.containsKey(expenseId)) {
+      await oldBox.delete(expenseId);
+    }
+  }
+
+  static Future<void> generateMonthlyExpensesFromRecurring(String periodId) async {
+    final existingMonthly = getMonthlyExpensesForPeriod(periodId);
+    final existingRecIds = existingMonthly
+        .where((me) => me.recurringExpenseId != null)
+        .map((me) => me.recurringExpenseId!)
+        .toSet();
+
+    final activeRecurring = getAllRecurringExpenses().where((re) => re.isActive);
+
+    for (final rec in activeRecurring) {
+      if (!existingRecIds.contains(rec.id)) {
+        final newExpense = MonthlyExpense(
+          id: 'me_${periodId}_${rec.id}',
+          periodId: periodId,
+          categoryId: rec.categoryId,
+          title: rec.name,
+          isPaid: false,
+          amount: null,
+          recurringExpenseId: rec.id,
+        );
+        await saveMonthlyExpense(newExpense);
+      }
+    }
+  }
+
+  // --- Planned Expense Operations (Legacy Alias) ---
+  static List<PlannedExpense> getPlannedExpensesForPeriod(String periodId) =>
+      getMonthlyExpensesForPeriod(periodId);
 
   static List<PlannedExpense> getPlannedExpensesForCategory(
-      String periodId, String categoryId) {
-    final box = Hive.box(plannedExpensesBoxName);
-    final list = box.values
-        .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))
-        .where((pe) => pe.periodId == periodId && pe.categoryId == categoryId)
-        .toList();
-    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-    return list;
-  }
+          String periodId, String categoryId) =>
+      getMonthlyExpensesForCategory(periodId, categoryId);
 
-  static List<PlannedExpense> getAllPlannedExpenses() {
-    final box = Hive.box(plannedExpensesBoxName);
-    final list = box.values
-        .map((e) => PlannedExpense.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
-    list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-    return list;
-  }
+  static List<PlannedExpense> getAllPlannedExpenses() => getAllMonthlyExpenses();
 
-  static Future<void> savePlannedExpense(PlannedExpense plannedExpense) async {
-    final box = Hive.box(plannedExpensesBoxName);
-    await box.put(plannedExpense.id, plannedExpense.toMap());
-  }
+  static Future<void> savePlannedExpense(PlannedExpense plannedExpense) =>
+      saveMonthlyExpense(plannedExpense);
 
-  static Future<void> deletePlannedExpense(String plannedExpenseId) async {
-    final box = Hive.box(plannedExpensesBoxName);
-    await box.delete(plannedExpenseId);
-  }
+  static Future<void> deletePlannedExpense(String plannedExpenseId) =>
+      deleteMonthlyExpense(plannedExpenseId);
 
   // --- Settings Operations ---
   static String? getSetting(String key) {
@@ -341,6 +438,8 @@ class HiveService {
     required List<AllocationTemplateItem> templateItems,
     required List<Allocation> allocations,
     required List<Transaction> transactions,
+    List<MonthlyExpense> monthlyExpenses = const [],
+    List<RecurringExpense> recurringExpenses = const [],
     List<PlannedExpense> plannedExpenses = const [],
   }) async {
     final pBox = Hive.box(periodsBoxName);
@@ -350,6 +449,8 @@ class HiveService {
     final tiBox = Hive.box(templateItemsBoxName);
     final aBox = Hive.box(allocationsBoxName);
     final trBox = Hive.box(transactionsBoxName);
+    final meBox = Hive.box(monthlyExpensesBoxName);
+    final recBox = Hive.box(recurringExpensesBoxName);
     final peBox = Hive.box(plannedExpensesBoxName);
 
     await pBox.clear();
@@ -359,6 +460,8 @@ class HiveService {
     await tiBox.clear();
     await aBox.clear();
     await trBox.clear();
+    await meBox.clear();
+    await recBox.clear();
     await peBox.clear();
 
     for (final item in periods) {
@@ -382,8 +485,14 @@ class HiveService {
     for (final item in transactions) {
       await trBox.put(item.id, item.toMap());
     }
+    for (final item in monthlyExpenses) {
+      await meBox.put(item.id, item.toMap());
+    }
+    for (final item in recurringExpenses) {
+      await recBox.put(item.id, item.toMap());
+    }
     for (final item in plannedExpenses) {
-      await peBox.put(item.id, item.toMap());
+      await meBox.put(item.id, item.toMap());
     }
 
     await setSetting('last_backup_date', DateTime.now().toIso8601String());

@@ -25,7 +25,9 @@ class AllocationListNotifier extends StateNotifier<List<Allocation>> {
   }
 
   Future<void> saveAllocations(List<Allocation> allocations) async {
-    await HiveService.deleteAllocationsForPeriod(activePeriodId);
+    final targetPeriodId =
+        allocations.isNotEmpty ? allocations.first.periodId : activePeriodId;
+    await HiveService.deleteAllocationsForPeriod(targetPeriodId);
     await HiveService.saveAllocations(allocations);
     loadAllocations();
   }

@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/category.dart';
-import '../../../models/planned_expense.dart';
-import '../../../models/transaction.dart';
-import '../../../providers/expense_provider.dart';
-import '../../../providers/period_provider.dart';
+import '../../../models/monthly_expense.dart';
 import '../../../providers/planned_expense_provider.dart';
 import '../../../providers/summary_provider.dart';
 import '../../../theme/app_colors.dart';
@@ -53,313 +49,213 @@ class CategoryPlannedExpensesSheet extends ConsumerStatefulWidget {
 
 class _CategoryPlannedExpensesSheetState
     extends ConsumerState<CategoryPlannedExpensesSheet> {
-  int _selectedTab = 0; // 0: Rencana Pengeluaran, 1: Diluar Rencana
 
-  void _showAddPlannedDialog() {
+  void _showAddExpenseDialog() {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
+    bool isPaid = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Tambah Rencana ${widget.category.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Nama Tagihan / Rencana',
-                hintText: 'Misal: Listrik PLN, Internet, Kos',
-              ),
-              autofocus: true,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [ThousandsSeparatorInputFormatter()],
-              decoration: const InputDecoration(
-                labelText: 'Nominal Rencana (Rp)',
-                hintText: '0',
-                prefixText: 'Rp ',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.brandPrimary,
-              foregroundColor: AppColors.textInverse,
-            ),
-            onPressed: () {
-              final title = titleController.text.trim();
-              final amount = CurrencyFormatter.parse(amountController.text);
-
-              if (title.isNotEmpty && amount > 0) {
-                ref.read(plannedExpenseListProvider.notifier).addPlannedExpense(
-                      categoryId: widget.category.id,
-                      title: title,
-                      plannedAmount: amount,
-                    );
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Simpan Rencana'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddUnplannedTransactionDialog() {
-    final titleController = TextEditingController();
-    final amountController = TextEditingController();
-    final noteController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Tambah Transaksi ${widget.category.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Keterangan Transaksi',
-                hintText: 'Misal: Beli Kopi, Tambal Ban, Jajanan',
-              ),
-              autofocus: true,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [ThousandsSeparatorInputFormatter()],
-              decoration: const InputDecoration(
-                labelText: 'Nominal (Rp)',
-                hintText: '0',
-                prefixText: 'Rp ',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: noteController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Catatan (Opsional)',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.brandPrimary,
-              foregroundColor: AppColors.textInverse,
-            ),
-            onPressed: () {
-              final title = titleController.text.trim();
-              final amount = CurrencyFormatter.parse(amountController.text);
-              final note = noteController.text.trim();
-
-              if (title.isNotEmpty && amount > 0) {
-                final activePeriodId = ref.read(activePeriodIdProvider);
-                const uuid = Uuid();
-                final newTx = Transaction(
-                  id: 'tx_${uuid.v4()}',
-                  periodId: activePeriodId,
-                  date: DateTime.now(),
-                  description: title,
-                  categoryId: widget.category.id,
-                  amount: amount,
-                  type: 'Expense',
-                  note: note.isNotEmpty ? note : null,
-                );
-
-                ref
-                    .read(transactionListProvider.notifier)
-                    .addTransaction(newTx);
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Transaksi ${newTx.description} (${CurrencyFormatter.format(amount)}) berhasil ditambahkan.',
-                    ),
-                    backgroundColor: AppColors.brandPrimary,
-                  ),
-                );
-              }
-            },
-            child: const Text('Simpan Transaksi'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showPayDialog(PlannedExpense item) {
-    final actualAmountController = TextEditingController(
-      text: CurrencyFormatter.formatNumberOnly(item.plannedAmount),
-    );
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.payment, color: AppColors.brandPrimary),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                'Bayar: ${item.title}',
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Rencana Nominal: ${CurrencyFormatter.format(item.plannedAmount)}',
-              style: AppTypography.bodySecondary,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            TextField(
-              controller: actualAmountController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [ThousandsSeparatorInputFormatter()],
-              decoration: const InputDecoration(
-                labelText: 'Nominal Aktual yang Dibayarkan (Rp)',
-                prefixText: 'Rp ',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Jika nominal aktual melebihi rencana, aplikasi akan memberikan indikator "Di atas rencana".',
-              style: AppTypography.labelSmall,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.brandPrimary,
-              foregroundColor: AppColors.textInverse,
-            ),
-            onPressed: () {
-              final actualAmount =
-                  CurrencyFormatter.parse(actualAmountController.text);
-
-              if (actualAmount > 0) {
-                ref.read(plannedExpenseListProvider.notifier).payPlannedExpense(
-                      item: item,
-                      actualPaidAmount: actualAmount,
-                    );
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${item.title} sebesar ${CurrencyFormatter.format(actualAmount)} berhasil dibayarkan!',
-                    ),
-                    backgroundColor: AppColors.brandPrimary,
-                  ),
-                );
-              }
-            },
-            child: const Text('Konfirmasi Bayar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDeleteUnplannedTransaction(Transaction tx) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Transaksi'),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus transaksi "${tx.description}" sebesar ${CurrencyFormatter.format(tx.amount)}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.expenseRed,
-              foregroundColor: AppColors.textInverse,
-            ),
-            onPressed: () {
-              ref
-                  .read(transactionListProvider.notifier)
-                  .deleteTransaction(tx.id);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text('Transaksi ${tx.description} berhasil dihapus.'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Tambah Pengeluaran ${widget.category.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Pengeluaran',
+                  hintText: 'Misal: Pulsa, Token Listrik, Belanja',
                 ),
-              );
-            },
-            child: const Text('Hapus'),
+                autofocus: true,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Sudah Dibayar?'),
+                value: isPaid,
+                onChanged: (val) {
+                  setDialogState(() {
+                    isPaid = val;
+                  });
+                },
+              ),
+              if (isPaid) ...[
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  decoration: const InputDecoration(
+                    labelText: 'Nominal Dibayar (Rp)',
+                    hintText: '0',
+                    prefixText: 'Rp ',
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: AppColors.textInverse,
+              ),
+              onPressed: () {
+                final title = titleController.text.trim();
+                final amount = CurrencyFormatter.parse(amountController.text);
+
+                if (title.isNotEmpty) {
+                  ref
+                      .read(plannedExpenseListProvider.notifier)
+                      .addPlannedExpense(
+                        categoryId: widget.category.id,
+                        title: title,
+                        isPaid: isPaid,
+                        amount: isPaid ? amount : null,
+                      );
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPayDialog(MonthlyExpense item) {
+    final amountController = TextEditingController(
+      text: item.amount != null && item.amount! > 0
+          ? CurrencyFormatter.formatNumberOnly(item.amount!)
+          : '',
+    );
+    DateTime selectedDate = DateTime.now();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.payment, color: AppColors.brandPrimary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Bayar: ${item.title}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [ThousandsSeparatorInputFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Nominal yang Dibayarkan (Rp)',
+                  hintText: '0',
+                  prefixText: 'Rp ',
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setDialogState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Tanggal Pembayaran',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(DateFormat('dd MMMM yyyy', 'id_ID').format(selectedDate)),
+                      const Icon(Icons.calendar_today, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: AppColors.textInverse,
+              ),
+              onPressed: () {
+                final actualAmount =
+                    CurrencyFormatter.parse(amountController.text);
+
+                if (actualAmount > 0) {
+                  ref
+                      .read(plannedExpenseListProvider.notifier)
+                      .payPlannedExpense(
+                        item: item,
+                        actualPaidAmount: actualAmount,
+                        paymentDate: selectedDate,
+                      );
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${item.title} sebesar ${CurrencyFormatter.format(actualAmount)} berhasil dibayarkan!',
+                      ),
+                      backgroundColor: AppColors.brandPrimary,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Konfirmasi Bayar'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final allPlanned = ref.watch(plannedExpenseListProvider);
-    final categoryPlanned =
-        allPlanned.where((pe) => pe.categoryId == widget.category.id).toList();
-    categoryPlanned
+    final allMonthlyExpenses = ref.watch(plannedExpenseListProvider);
+    final categoryExpenses = allMonthlyExpenses
+        .where((me) => me.categoryId == widget.category.id)
+        .toList();
+    categoryExpenses
         .sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
 
-    final allTransactions = ref.watch(transactionListProvider);
-    final categoryTransactions = allTransactions
-        .where(
-            (tx) => tx.categoryId == widget.category.id && tx.type == 'Expense')
-        .toList();
+    final paidCount = categoryExpenses.where((me) => me.isPaid).length;
+    final totalCount = categoryExpenses.length;
 
-    final paidTxIds = categoryPlanned
-        .map((pe) => pe.paidTransactionId)
-        .where((id) => id != null)
-        .toSet();
-
-    final unplannedTransactions =
-        categoryTransactions.where((tx) => !paidTxIds.contains(tx.id)).toList();
-    unplannedTransactions.sort((a, b) => b.date.compareTo(a.date));
-
-    final paidCount = categoryPlanned.where((pe) => pe.isPaid).length;
-    final totalCount = categoryPlanned.length;
-    final totalPlannedNominal =
-        categoryPlanned.fold<int>(0, (sum, pe) => sum + pe.plannedAmount);
-    final totalUnplannedNominal =
-        unplannedTransactions.fold<int>(0, (sum, tx) => sum + tx.amount);
     final monthlySummary = ref.watch(monthlySummaryProvider);
     final catStatusList = monthlySummary.categoryStatuses
         .where((cs) => cs.category.id == widget.category.id);
@@ -478,41 +374,16 @@ class _CategoryPlannedExpensesSheetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Total Rencana',
+                            'Sudah Dibayar',
                             style: AppTypography.labelSmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            CurrencyFormatter.format(totalPlannedNominal),
-                            style: AppTypography.labelStandard.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Non-Rencana',
-                            style: AppTypography.labelSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            CurrencyFormatter.format(totalUnplannedNominal),
+                            CurrencyFormatter.format(actualExpense),
                             style: AppTypography.labelStandard.copyWith(
                               color: AppColors.expenseRed,
+                              fontWeight: FontWeight.w600,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -552,213 +423,80 @@ class _CategoryPlannedExpensesSheetState
 
           const SizedBox(height: AppSpacing.md),
 
-          // Tab Switcher Buttons
+          // Section Title & Add Button
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedTab = 0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _selectedTab == 0
-                          ? AppColors.brandPrimary
-                          : AppColors.chipSubSurface,
-                      borderRadius: AppRadius.radiusMd,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Rencana (${categoryPlanned.length})',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: _selectedTab == 0
-                              ? AppColors.textInverse
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
+              const Expanded(
+                child: Text(
+                  'Daftar Pengeluaran',
+                  style: AppTypography.sectionTitle,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedTab = 1),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _selectedTab == 1
-                          ? AppColors.brandPrimary
-                          : AppColors.chipSubSurface,
-                      borderRadius: AppRadius.radiusMd,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Diluar Rencana (${unplannedTransactions.length})',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: _selectedTab == 1
-                              ? AppColors.textInverse
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
+              TextButton.icon(
+                onPressed: _showAddExpenseDialog,
+                icon: const Icon(Icons.add,
+                    size: 18, color: AppColors.brandPrimary),
+                label: const Text(
+                  'Tambah Pengeluaran',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandPrimary,
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
 
-          // Tab Content
-          if (_selectedTab == 0) ...[
-            // Section Title & Add Button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Daftar Rencana Pengeluaran',
-                    style: AppTypography.sectionTitle,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TextButton.icon(
-                  onPressed: _showAddPlannedDialog,
-                  icon: const Icon(Icons.add,
-                      size: 18, color: AppColors.brandPrimary),
-                  label: const Text(
-                    'Tambah Item',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.brandPrimary,
+          // Expenses List
+          Expanded(
+            child: categoryExpenses.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.checklist_rtl_outlined,
+                          size: 48,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Belum ada pengeluaran untuk ${widget.category.name}.',
+                          style: AppTypography.bodySecondary,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        OutlinedButton.icon(
+                          onPressed: _showAddExpenseDialog,
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Tambah Pengeluaran'),
+                        ),
+                      ],
                     ),
+                  )
+                : ListView.separated(
+                    itemCount: categoryExpenses.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (ctx, index) {
+                      final item = categoryExpenses[index];
+                      return _buildExpenseTile(context, item);
+                    },
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSpacing.sm),
-
-            // Planned Items List
-            Expanded(
-              child: categoryPlanned.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.checklist_rtl_outlined,
-                            size: 48,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            'Belum ada rencana pengeluaran untuk ${widget.category.name}.',
-                            style: AppTypography.bodySecondary,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          OutlinedButton.icon(
-                            onPressed: _showAddPlannedDialog,
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Buat Rencana Pertama'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: categoryPlanned.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (ctx, index) {
-                        final item = categoryPlanned[index];
-                        return _buildPlannedItemTile(context, item);
-                      },
-                    ),
-            ),
-          ] else ...[
-            // Section Title & Add Button for Unplanned
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Transaksi Non-Rencana',
-                    style: AppTypography.sectionTitle,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TextButton.icon(
-                  onPressed: _showAddUnplannedTransactionDialog,
-                  icon: const Icon(Icons.add,
-                      size: 18, color: AppColors.brandPrimary),
-                  label: const Text(
-                    'Tambah Transaksi',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.brandPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSpacing.sm),
-
-            // Unplanned Transactions List
-            Expanded(
-              child: unplannedTransactions.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.receipt_long_outlined,
-                            size: 48,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            'Tidak ada transaksi diluar rencana untuk ${widget.category.name}.',
-                            style: AppTypography.bodySecondary,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          OutlinedButton.icon(
-                            onPressed: _showAddUnplannedTransactionDialog,
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Catat Transaksi Baru'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: unplannedTransactions.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (ctx, index) {
-                        final tx = unplannedTransactions[index];
-                        return _buildUnplannedTransactionTile(context, tx);
-                      },
-                    ),
-            ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPlannedItemTile(BuildContext context, PlannedExpense item) {
+  Widget _buildExpenseTile(BuildContext context, MonthlyExpense item) {
     final isPaid = item.isPaid;
-    final isOverrun = item.isPaidAbovePlanned;
 
     return CustomCard(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -766,7 +504,7 @@ class _CategoryPlannedExpensesSheetState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Checkbox / Status Icon
+          // Status Checkbox
           GestureDetector(
             onTap: () {
               if (isPaid) {
@@ -782,17 +520,9 @@ class _CategoryPlannedExpensesSheetState
               height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isPaid
-                    ? (isOverrun
-                        ? AppColors.warningAmber
-                        : AppColors.brandPrimary)
-                    : AppColors.surfaceWhite,
+                color: isPaid ? AppColors.brandPrimary : AppColors.surfaceWhite,
                 border: Border.all(
-                  color: isPaid
-                      ? (isOverrun
-                          ? AppColors.warningAmber
-                          : AppColors.brandPrimary)
-                      : AppColors.textMuted,
+                  color: isPaid ? AppColors.brandPrimary : AppColors.textMuted,
                   width: 2,
                 ),
               ),
@@ -805,7 +535,7 @@ class _CategoryPlannedExpensesSheetState
 
           const SizedBox(width: AppSpacing.md),
 
-          // Content Title & Amounts
+          // Title & Amount
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -823,68 +553,43 @@ class _CategoryPlannedExpensesSheetState
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      'Rencana: ${CurrencyFormatter.format(item.plannedAmount)}',
-                      style: AppTypography.labelStandard,
-                    ),
-                    if (isPaid && item.actualPaidAmount != null) ...[
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '• Dibayar: ${CurrencyFormatter.format(item.actualPaidAmount!)}',
+                if (isPaid && item.amount != null)
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Sudah Dibayar: ${CurrencyFormatter.format(item.amount!)}',
                           style: AppTypography.labelStandard.copyWith(
-                            color: isOverrun
-                                ? AppColors.warningAmberDark
-                                : const Color(0xFF166534),
+                            color: const Color(0xFF166534),
                             fontWeight: FontWeight.w600,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-
-                // Visual Overrun Warning Indicator if actual paid > planned
-                if (isOverrun) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningBadgeBg,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      border: Border.all(color: AppColors.warningAmber),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.warning_amber_rounded,
-                            size: 12, color: AppColors.warningAmberDark),
-                        const SizedBox(width: AppSpacing.xs),
-                        Flexible(
-                          child: Text(
-                            'Di atas rencana (+${CurrencyFormatter.format(item.overrunAmount)})',
-                            style: AppTypography.captionBadge.copyWith(
-                              color: const Color(0xFFB45309),
-                              fontWeight: FontWeight.bold,
+                        if (item.paymentDate != null)
+                          TextSpan(
+                            text: ' • ${DateFormat('d MMM', 'id_ID').format(item.paymentDate!)}',
+                            style: AppTypography.labelStandard.copyWith(
+                              color: AppColors.textMuted,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
                       ],
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                else
+                  Text(
+                    'Belum Dibayar: —',
+                    style: AppTypography.labelStandard.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
-                ],
               ],
             ),
           ),
 
           const SizedBox(width: AppSpacing.sm),
 
-          // Action Button / Popup Menu
+          // Action Button
           if (!isPaid)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -928,102 +633,7 @@ class _CategoryPlannedExpensesSheetState
                     Icon(Icons.delete_outline,
                         size: 16, color: AppColors.expenseRed),
                     SizedBox(width: AppSpacing.sm),
-                    Text('Hapus Rencana',
-                        style: TextStyle(color: AppColors.expenseRed)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnplannedTransactionTile(BuildContext context, Transaction tx) {
-    return CustomCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      backgroundColor: AppColors.surfaceWhite,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: const BoxDecoration(
-              color: AppColors.expenseBgLight,
-              borderRadius: AppRadius.radiusSm,
-            ),
-            child: const Icon(
-              Icons.receipt_long_outlined,
-              size: 20,
-              color: AppColors.expenseRed,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tx.description,
-                  style: AppTypography.bodyPrimary,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      DateFormat('d MMM yyyy', 'id_ID').format(tx.date),
-                      style: AppTypography.labelStandard,
-                    ),
-                    if (tx.note != null && tx.note!.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '• ${tx.note}',
-                          style: AppTypography.labelStandard.copyWith(
-                            color: AppColors.textMuted,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                CurrencyFormatter.format(tx.amount),
-                style: AppTypography.bodySecondary.copyWith(
-                  color: AppColors.expenseRed,
-                ),
-              ),
-            ],
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert,
-                size: 18, color: AppColors.textMuted),
-            onSelected: (val) {
-              if (val == 'delete') {
-                _confirmDeleteUnplannedTransaction(tx);
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline,
-                        size: 16, color: AppColors.expenseRed),
-                    SizedBox(width: AppSpacing.sm),
-                    Text('Hapus Transaksi',
-                        style: TextStyle(color: AppColors.expenseRed)),
+                    Text('Hapus', style: TextStyle(color: AppColors.expenseRed)),
                   ],
                 ),
               ),

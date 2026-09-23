@@ -160,8 +160,9 @@ final monthlySummaryProvider = Provider<MonthlySummary>((ref) {
     final totalPlannedItems = catPlanned.length;
     final paidItemsCount = catPlanned.where((pe) => pe.isPaid).length;
     final unpaidItemsCount = catPlanned.where((pe) => !pe.isPaid).length;
-    final totalPlannedAmount =
-        catPlanned.fold<int>(0, (sum, pe) => sum + pe.plannedAmount);
+    final totalPlannedAmount = catPlanned
+        .where((pe) => pe.isPaid && pe.amount != null)
+        .fold<int>(0, (sum, pe) => sum + pe.amount!);
 
     final remaining = allocated - actual;
     final usageRatio =

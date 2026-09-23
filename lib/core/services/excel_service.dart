@@ -10,7 +10,7 @@ import '../../models/category.dart';
 import '../../models/allocation_template.dart';
 import '../../models/allocation.dart';
 import '../../models/transaction.dart';
-import '../../models/planned_expense.dart';
+import '../../models/monthly_expense.dart';
 
 class ExcelService {
   static Future<String?> exportData() async {
@@ -165,32 +165,30 @@ class ExcelService {
       ]);
     }
 
-    // 8. PlannedExpenses
-    final sheetPlannedExpenses = excel['PlannedExpenses'];
+    // 8. PlannedExpenses (MonthlyExpenses)
+    final Sheet sheetPlannedExpenses = excel['PlannedExpenses'];
     sheetPlannedExpenses.appendRow([
       TextCellValue('id'),
       TextCellValue('period_id'),
       TextCellValue('category_id'),
       TextCellValue('title'),
-      TextCellValue('planned_amount'),
-      TextCellValue('actual_paid_amount'),
       TextCellValue('is_paid'),
-      TextCellValue('paid_transaction_id'),
-      TextCellValue('due_date'),
+      TextCellValue('amount'),
+      TextCellValue('payment_date'),
+      TextCellValue('recurring_expense_id'),
+      TextCellValue('note'),
     ]);
-    for (final pe in HiveService.getAllPlannedExpenses()) {
+    for (final pe in HiveService.getAllMonthlyExpenses()) {
       sheetPlannedExpenses.appendRow([
         TextCellValue(pe.id),
         TextCellValue(pe.periodId),
         TextCellValue(pe.categoryId),
         TextCellValue(pe.title),
-        IntCellValue(pe.plannedAmount),
-        pe.actualPaidAmount != null
-            ? IntCellValue(pe.actualPaidAmount!)
-            : TextCellValue(''),
         TextCellValue(pe.isPaid ? 'true' : 'false'),
-        TextCellValue(pe.paidTransactionId ?? ''),
-        TextCellValue(pe.dueDate?.toIso8601String() ?? ''),
+        pe.amount != null ? IntCellValue(pe.amount!) : TextCellValue(''),
+        TextCellValue(pe.paymentDate?.toIso8601String() ?? ''),
+        TextCellValue(pe.recurringExpenseId ?? ''),
+        TextCellValue(pe.note ?? ''),
       ]);
     }
 
@@ -364,32 +362,33 @@ class ExcelService {
       }
 
       // Parse PlannedExpenses (Optional for backwards compatibility)
-      final List<PlannedExpense> plannedExpenses = [];
+      final List<MonthlyExpense> plannedExpenses = [];
       if (excel.tables.containsKey('PlannedExpenses')) {
         final peTable = excel.tables['PlannedExpenses']!;
         for (int i = 1; i < peTable.maxRows; i++) {
           final row = peTable.rows[i];
           if (row.isEmpty || row[0]?.value == null) continue;
-          final actualPaidStr = row[5]?.value?.toString();
-          final paidTxIdStr = row[7]?.value?.toString();
-          final dueDateStr = row[8]?.value?.toString();
-          plannedExpenses.add(PlannedExpense(
+          final isPaid = row[4]?.value?.toString().toLowerCase() == 'true' ||
+              (row.length > 6 && row[6]?.value?.toString().toLowerCase() == 'true');
+          final amountStr = row[5]?.value?.toString() ?? row[4]?.value?.toString();
+          final amountVal = amountStr != null && int.tryParse(amountStr) != null
+              ? int.tryParse(amountStr)
+              : null;
+          final payDateStr = row.length > 6 ? row[6]?.value?.toString() : null;
+          final payDate = payDateStr != null && payDateStr.isNotEmpty
+              ? DateTime.tryParse(payDateStr)
+              : null;
+
+          plannedExpenses.add(MonthlyExpense(
             id: row[0]!.value.toString(),
             periodId: row[1]!.value.toString(),
             categoryId: row[2]!.value.toString(),
             title: row[3]?.value?.toString() ?? '',
-            plannedAmount: int.parse(row[4]!.value.toString()),
-            actualPaidAmount:
-                (actualPaidStr != null && actualPaidStr.isNotEmpty)
-                    ? int.tryParse(actualPaidStr)
-                    : null,
-            isPaid: row[6]?.value?.toString().toLowerCase() == 'true',
-            paidTransactionId: (paidTxIdStr != null && paidTxIdStr.isNotEmpty)
-                ? paidTxIdStr
-                : null,
-            dueDate: (dueDateStr != null && dueDateStr.isNotEmpty)
-                ? DateTime.tryParse(dueDateStr)
-                : null,
+            isPaid: isPaid,
+            amount: isPaid ? amountVal : null,
+            paymentDate: payDate,
+            recurringExpenseId: row.length > 7 ? row[7]?.value?.toString() : null,
+            note: row.length > 8 ? row[8]?.value?.toString() : null,
           ));
         }
       }

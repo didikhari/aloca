@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/database/hive_service.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../models/allocation.dart';
+import '../../models/allocation_template.dart';
 import '../../models/category.dart';
 import '../../providers/period_provider.dart';
 import '../../providers/category_provider.dart';
@@ -14,8 +16,8 @@ import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
-import '../dashboard/widgets/category_planned_expenses_sheet.dart';
-import '../../providers/planned_expense_provider.dart';
+import 'widgets/category_routine_expenses_sheet.dart';
+import '../../providers/recurring_expense_provider.dart';
 
 class AllocationManagementScreen extends ConsumerStatefulWidget {
   const AllocationManagementScreen({super.key});
@@ -41,22 +43,47 @@ class _AllocationManagementScreenState
   void _initFields() {
     final allocations = ref.read(allocationListProvider);
     final categories = ref.read(categoryListProvider);
+    final templates = ref.read(templateListProvider);
+    final defaultTemplate = templates.isNotEmpty
+        ? templates.firstWhere((t) => t.isDefault, orElse: () => templates.first)
+        : null;
+    final defaultItems = defaultTemplate != null
+        ? HiveService.getTemplateItems(defaultTemplate.id)
+        : <AllocationTemplateItem>[];
 
     for (final cat in categories) {
       final matches = allocations.where((a) => a.categoryId == cat.id);
       final alloc = matches.isNotEmpty ? matches.first : null;
 
-      final method = alloc?.method ?? 'percentage';
-      final val = alloc?.value ?? 0.0;
+      String method;
+      double val;
+
+      if (alloc != null) {
+        method = alloc.method;
+        val = alloc.value;
+      } else {
+        final tItem =
+            defaultItems.where((i) => i.categoryId == cat.id).firstOrNull;
+        if (tItem != null) {
+          method = tItem.method;
+          val = tItem.value;
+        } else {
+          method = 'percentage';
+          val = 0.0;
+        }
+      }
 
       _methods[cat.id] = method;
-      _controllers[cat.id] = TextEditingController(
-        text: method == 'percentage'
-            ? val.toStringAsFixed(0)
-            : (method == 'fixed'
-                ? CurrencyFormatter.formatNumberOnly(val.toInt())
-                : ''),
-      );
+      final newText = method == 'percentage'
+          ? val.toStringAsFixed(0)
+          : (method == 'fixed'
+              ? CurrencyFormatter.formatNumberOnly(val.toInt())
+              : '');
+      if (_controllers.containsKey(cat.id)) {
+        _controllers[cat.id]!.text = newText;
+      } else {
+        _controllers[cat.id] = TextEditingController(text: newText);
+      }
     }
     setState(() {});
   }
@@ -360,20 +387,18 @@ class _AllocationManagementScreenState
 
                             const SizedBox(height: AppSpacing.sm),
 
-                            // Button / Badge to manage planned expenses for this category
+                            // Button / Badge to manage routine expenses for this category
                             Consumer(
                               builder: (context, ref, _) {
-                                final plannedList = ref
-                                    .watch(plannedExpenseListProvider)
-                                    .where((pe) => pe.categoryId == cat.id)
+                                final routineList = ref
+                                    .watch(recurringExpenseListProvider)
+                                    .where((re) => re.categoryId == cat.id)
                                     .toList();
                                 return InkWell(
                                   onTap: () {
-                                    CategoryPlannedExpensesSheet.show(
+                                    CategoryRoutineExpensesSheet.show(
                                       context,
                                       category: cat,
-                                      allocatedAmount: liveNominal,
-                                      actualExpense: 0,
                                     );
                                   },
                                   borderRadius: AppRadius.radiusSm,
@@ -396,9 +421,9 @@ class _AllocationManagementScreenState
                                         ),
                                         const SizedBox(width: AppSpacing.xs),
                                         Text(
-                                          plannedList.isEmpty
-                                              ? '+ Tambah Rencana Tagihan'
-                                              : '${plannedList.length} Rencana Tagihan',
+                                          routineList.isEmpty
+                                              ? '+ Tambah Pengeluaran Rutin'
+                                              : '${routineList.length} Pengeluaran Rutin',
                                           style:
                                               AppTypography.labelSmall.copyWith(
                                             color: AppColors.brandPrimary,

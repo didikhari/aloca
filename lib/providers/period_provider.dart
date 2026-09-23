@@ -29,6 +29,7 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
       HiveService.savePeriod(currentPeriod);
       periods = HiveService.getAllPeriods();
     }
+    HiveService.generateMonthlyExpensesFromRecurring(currentPeriodId);
     recalculateAllPeriodsChain(periods);
   }
 
@@ -97,6 +98,7 @@ class PeriodListNotifier extends StateNotifier<List<FinancialPeriod>> {
       openingBalance: opening,
     );
     await HiveService.savePeriod(newPeriod);
+    await HiveService.generateMonthlyExpensesFromRecurring(periodId);
     await recalculateAllPeriodsChain();
     return newPeriod;
   }

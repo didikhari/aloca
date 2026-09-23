@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/database/hive_service.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../models/allocation.dart';
+import '../../models/allocation_template.dart';
 import '../../models/category.dart';
 import '../../providers/allocation_provider.dart';
 import '../../providers/category_provider.dart';
@@ -46,14 +48,36 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
   void _initAllocationFields() {
     final categories = ref.read(categoryListProvider);
     final allocations = ref.read(allocationListProvider);
+    final templates = HiveService.getAllTemplates();
+    final defaultTemplate = templates.isNotEmpty
+        ? templates.firstWhere((t) => t.isDefault, orElse: () => templates.first)
+        : null;
+    final defaultItems = defaultTemplate != null
+        ? HiveService.getTemplateItems(defaultTemplate.id)
+        : <AllocationTemplateItem>[];
 
     for (final cat in categories) {
       if (!_methods.containsKey(cat.id)) {
         final matches = allocations.where((a) => a.categoryId == cat.id);
         final alloc = matches.isNotEmpty ? matches.first : null;
 
-        final method = alloc?.method ?? 'percentage';
-        final val = alloc?.value ?? 0.0;
+        String method;
+        double val;
+
+        if (alloc != null) {
+          method = alloc.method;
+          val = alloc.value;
+        } else {
+          final tItem =
+              defaultItems.where((i) => i.categoryId == cat.id).firstOrNull;
+          if (tItem != null) {
+            method = tItem.method;
+            val = tItem.value;
+          } else {
+            method = 'percentage';
+            val = 0.0;
+          }
+        }
 
         _methods[cat.id] = method;
         _controllers[cat.id] = TextEditingController(
