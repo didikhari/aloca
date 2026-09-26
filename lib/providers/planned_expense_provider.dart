@@ -52,15 +52,18 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
     int? amount,
     bool isPaid = false,
     DateTime? paymentDate,
+    String? note,
   }) async {
     String? txId;
+    final noteText = note != null && note.trim().isNotEmpty ? note.trim() : null;
+
     if (isPaid && amount != null && amount > 0) {
       txId = 'tx_${const Uuid().v4()}';
       final newTx = Transaction(
         id: txId,
         periodId: activePeriodId,
         date: paymentDate ?? DateTime.now(),
-        description: title,
+        description: noteText != null ? '$title ($noteText)' : title,
         categoryId: categoryId,
         amount: amount,
         type: 'Expense',
@@ -76,6 +79,7 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
       isPaid: isPaid,
       amount: isPaid ? amount : null,
       paymentDate: isPaid ? (paymentDate ?? DateTime.now()) : null,
+      note: isPaid ? noteText : null,
       paidTransactionId: txId,
     );
     await HiveService.saveMonthlyExpense(newItem);
@@ -102,15 +106,17 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
     required MonthlyExpense item,
     required int actualPaidAmount,
     DateTime? paymentDate,
+    String? note,
   }) async {
     final now = paymentDate ?? DateTime.now();
+    final noteText = note != null && note.trim().isNotEmpty ? note.trim() : null;
 
     // Create actual expense transaction
     final newTx = Transaction(
       id: 'tx_${const Uuid().v4()}',
       periodId: activePeriodId,
       date: now,
-      description: item.title,
+      description: noteText != null ? '${item.title} ($noteText)' : item.title,
       categoryId: item.categoryId,
       amount: actualPaidAmount,
       type: 'Expense',
@@ -120,6 +126,7 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
       isPaid: true,
       amount: actualPaidAmount,
       paymentDate: now,
+      note: noteText,
       paidTransactionId: newTx.id,
     );
 

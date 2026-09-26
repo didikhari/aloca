@@ -11,6 +11,7 @@ import '../../../theme/app_radius.dart';
 import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../widgets/custom_card.dart';
+import '../monthly_category_detail_screen.dart';
 
 class CategoryPlannedExpensesSheet extends ConsumerStatefulWidget {
   final Category category;
@@ -30,14 +31,14 @@ class CategoryPlannedExpensesSheet extends ConsumerStatefulWidget {
     required int allocatedAmount,
     required int actualExpense,
   }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => CategoryPlannedExpensesSheet(
-        category: category,
-        allocatedAmount: allocatedAmount,
-        actualExpense: actualExpense,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MonthlyCategoryDetail(
+          category: category,
+          allocatedAmount: allocatedAmount,
+          actualExpense: actualExpense,
+        ),
       ),
     );
   }
@@ -54,6 +55,7 @@ class _CategoryPlannedExpensesSheetState
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     bool isPaid = false;
+    DateTime selectedDate = DateTime.now();
 
     showDialog(
       context: context,
@@ -95,6 +97,35 @@ class _CategoryPlannedExpensesSheetState
                     prefixText: 'Rp ',
                   ),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedDate = picked;
+                      });
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Tanggal Pembayaran',
+                      border: OutlineInputBorder(),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(DateFormat('dd MMMM yyyy', 'id_ID').format(selectedDate)),
+                        const Icon(Icons.calendar_today, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
@@ -120,6 +151,7 @@ class _CategoryPlannedExpensesSheetState
                         title: title,
                         isPaid: isPaid,
                         amount: isPaid ? amount : null,
+                        paymentDate: isPaid ? selectedDate : null,
                       );
                   Navigator.pop(ctx);
                 }
@@ -240,6 +272,37 @@ class _CategoryPlannedExpensesSheetState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteExpense(MonthlyExpense item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Pengeluaran'),
+        content: Text('Apakah Anda yakin ingin menghapus "${item.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.expenseRed,
+              foregroundColor: AppColors.textInverse,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ref
+                    .read(plannedExpenseListProvider.notifier)
+                    .deletePlannedExpense(item.id);
+              });
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }
@@ -620,9 +683,9 @@ class _CategoryPlannedExpensesSheetState
                 size: 18, color: AppColors.textMuted),
             onSelected: (val) {
               if (val == 'delete') {
-                ref
-                    .read(plannedExpenseListProvider.notifier)
-                    .deletePlannedExpense(item.id);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _confirmDeleteExpense(item);
+                });
               }
             },
             itemBuilder: (ctx) => [

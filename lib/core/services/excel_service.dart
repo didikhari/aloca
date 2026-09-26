@@ -371,8 +371,10 @@ class ExcelService {
           final row = peTable.rows[i];
           if (row.isEmpty || row[0]?.value == null) continue;
           final isPaid = row[4]?.value?.toString().toLowerCase() == 'true' ||
-              (row.length > 6 && row[6]?.value?.toString().toLowerCase() == 'true');
-          final amountStr = row[5]?.value?.toString() ?? row[4]?.value?.toString();
+              (row.length > 6 &&
+                  row[6]?.value?.toString().toLowerCase() == 'true');
+          final amountStr =
+              row[5]?.value?.toString() ?? row[4]?.value?.toString();
           final amountVal = amountStr != null && int.tryParse(amountStr) != null
               ? int.tryParse(amountStr)
               : null;
@@ -382,7 +384,9 @@ class ExcelService {
               : null;
 
           final paidTxStr = row.length > 8 ? row[8]?.value?.toString() : null;
-          final noteStr = row.length > 9 ? row[9]?.value?.toString() : (row.length > 8 ? row[8]?.value?.toString() : null);
+          final noteStr = row.length > 9
+              ? row[9]?.value?.toString()
+              : (row.length > 8 ? row[8]?.value?.toString() : null);
 
           plannedExpenses.add(MonthlyExpense(
             id: row[0]!.value.toString(),
@@ -392,8 +396,13 @@ class ExcelService {
             isPaid: isPaid,
             amount: isPaid ? amountVal : null,
             paymentDate: payDate,
-            recurringExpenseId: row.length > 7 ? row[7]?.value?.toString() : null,
-            paidTransactionId: (paidTxStr != null && paidTxStr.isNotEmpty && paidTxStr.startsWith('tx_')) ? paidTxStr : null,
+            recurringExpenseId:
+                row.length > 7 ? row[7]?.value?.toString() : null,
+            paidTransactionId: (paidTxStr != null &&
+                    paidTxStr.isNotEmpty &&
+                    paidTxStr.startsWith('tx_'))
+                ? paidTxStr
+                : null,
             note: noteStr,
           ));
         }

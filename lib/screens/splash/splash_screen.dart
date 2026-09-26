@@ -338,7 +338,7 @@ class _SplashScreenState extends State<SplashScreen>
                                       ),
                                       SizedBox(width: AppSpacing.sm),
                                       Text(
-                                        '1 Penghasilan',
+                                        'Penghasilan',
                                         style: AppTypography.bodyPrimary,
                                       ),
                                     ],

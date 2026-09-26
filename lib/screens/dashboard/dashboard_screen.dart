@@ -17,7 +17,7 @@ import '../settings/allocation_management_screen.dart';
 import '../settings/categories_screen.dart';
 import '../settings/backup_restore_screen.dart';
 import '../reports/monthly_report_screen.dart';
-import 'widgets/category_planned_expenses_sheet.dart';
+import 'monthly_category_detail_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -474,11 +474,15 @@ class DashboardScreen extends ConsumerWidget {
     return CustomCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       onTap: () {
-        CategoryPlannedExpensesSheet.show(
+        Navigator.push(
           context,
-          category: cs.category,
-          allocatedAmount: cs.allocated,
-          actualExpense: cs.actual,
+          MaterialPageRoute(
+            builder: (_) => MonthlyCategoryDetail(
+              category: cs.category,
+              allocatedAmount: cs.allocated,
+              actualExpense: cs.actual,
+            ),
+          ),
         );
       },
       child: Column(
