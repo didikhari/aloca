@@ -176,6 +176,7 @@ class ExcelService {
       TextCellValue('amount'),
       TextCellValue('payment_date'),
       TextCellValue('recurring_expense_id'),
+      TextCellValue('paid_transaction_id'),
       TextCellValue('note'),
     ]);
     for (final pe in HiveService.getAllMonthlyExpenses()) {
@@ -188,6 +189,7 @@ class ExcelService {
         pe.amount != null ? IntCellValue(pe.amount!) : TextCellValue(''),
         TextCellValue(pe.paymentDate?.toIso8601String() ?? ''),
         TextCellValue(pe.recurringExpenseId ?? ''),
+        TextCellValue(pe.paidTransactionId ?? ''),
         TextCellValue(pe.note ?? ''),
       ]);
     }
@@ -379,6 +381,9 @@ class ExcelService {
               ? DateTime.tryParse(payDateStr)
               : null;
 
+          final paidTxStr = row.length > 8 ? row[8]?.value?.toString() : null;
+          final noteStr = row.length > 9 ? row[9]?.value?.toString() : (row.length > 8 ? row[8]?.value?.toString() : null);
+
           plannedExpenses.add(MonthlyExpense(
             id: row[0]!.value.toString(),
             periodId: row[1]!.value.toString(),
@@ -388,7 +393,8 @@ class ExcelService {
             amount: isPaid ? amountVal : null,
             paymentDate: payDate,
             recurringExpenseId: row.length > 7 ? row[7]?.value?.toString() : null,
-            note: row.length > 8 ? row[8]?.value?.toString() : null,
+            paidTransactionId: (paidTxStr != null && paidTxStr.isNotEmpty && paidTxStr.startsWith('tx_')) ? paidTxStr : null,
+            note: noteStr,
           ));
         }
       }

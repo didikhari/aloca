@@ -27,6 +27,25 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
     state = list;
   }
 
+  Future<void> _deleteAssociatedTransaction(MonthlyExpense item) async {
+    String? txId = item.paidTransactionId;
+    if (txId == null && item.isPaid) {
+      final transactions = ref.read(transactionListProvider);
+      final match = transactions.where((t) =>
+          t.periodId == item.periodId &&
+          t.categoryId == item.categoryId &&
+          t.description == item.title &&
+          (item.amount == null || t.amount == item.amount) &&
+          t.type == 'Expense');
+      if (match.isNotEmpty) {
+        txId = match.first.id;
+      }
+    }
+    if (txId != null) {
+      await ref.read(transactionListProvider.notifier).deleteTransaction(txId);
+    }
+  }
+
   Future<void> addPlannedExpense({
     required String categoryId,
     required String title,
@@ -34,19 +53,11 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
     bool isPaid = false,
     DateTime? paymentDate,
   }) async {
-    final newItem = MonthlyExpense(
-      id: 'me_${const Uuid().v4()}',
-      periodId: activePeriodId,
-      categoryId: categoryId,
-      title: title,
-      isPaid: isPaid,
-      amount: isPaid ? amount : null,
-      paymentDate: isPaid ? (paymentDate ?? DateTime.now()) : null,
-    );
-    await HiveService.saveMonthlyExpense(newItem);
+    String? txId;
     if (isPaid && amount != null && amount > 0) {
+      txId = 'tx_${const Uuid().v4()}';
       final newTx = Transaction(
-        id: 'tx_${const Uuid().v4()}',
+        id: txId,
         periodId: activePeriodId,
         date: paymentDate ?? DateTime.now(),
         description: title,
@@ -56,6 +67,18 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
       );
       await ref.read(transactionListProvider.notifier).addTransaction(newTx);
     }
+
+    final newItem = MonthlyExpense(
+      id: 'me_${const Uuid().v4()}',
+      periodId: activePeriodId,
+      categoryId: categoryId,
+      title: title,
+      isPaid: isPaid,
+      amount: isPaid ? amount : null,
+      paymentDate: isPaid ? (paymentDate ?? DateTime.now()) : null,
+      paidTransactionId: txId,
+    );
+    await HiveService.saveMonthlyExpense(newItem);
     loadPlannedExpenses();
   }
 
@@ -65,6 +88,10 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
   }
 
   Future<void> deletePlannedExpense(String id) async {
+    final item = state.where((e) => e.id == id).firstOrNull;
+    if (item != null && item.isPaid) {
+      await _deleteAssociatedTransaction(item);
+    }
     await HiveService.deleteMonthlyExpense(id);
     loadPlannedExpenses();
   }
@@ -93,6 +120,7 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
       isPaid: true,
       amount: actualPaidAmount,
       paymentDate: now,
+      paidTransactionId: newTx.id,
     );
 
     await HiveService.saveMonthlyExpense(updatedItem);
@@ -104,10 +132,13 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
   Future<void> unpayPlannedExpense(MonthlyExpense item) async {
     if (!item.isPaid) return;
 
+    await _deleteAssociatedTransaction(item);
+
     final updatedItem = item.copyWith(
       isPaid: false,
       amount: null,
       paymentDate: null,
+      paidTransactionId: null,
     );
 
     await HiveService.saveMonthlyExpense(updatedItem);

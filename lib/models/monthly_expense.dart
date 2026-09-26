@@ -10,6 +10,7 @@ class MonthlyExpense {
   final int? amount; // Nullable: null = unpaid / amount not entered yet.
   final DateTime? paymentDate;
   final String? recurringExpenseId;
+  final String? paidTransactionId;
   final String? note;
 
   MonthlyExpense({
@@ -21,6 +22,7 @@ class MonthlyExpense {
     this.amount,
     this.paymentDate,
     this.recurringExpenseId,
+    this.paidTransactionId,
     this.note,
   });
 
@@ -33,6 +35,7 @@ class MonthlyExpense {
     int? amount,
     DateTime? paymentDate,
     String? recurringExpenseId,
+    String? paidTransactionId,
     String? note,
   }) {
     return MonthlyExpense(
@@ -44,6 +47,7 @@ class MonthlyExpense {
       amount: amount ?? this.amount,
       paymentDate: paymentDate ?? this.paymentDate,
       recurringExpenseId: recurringExpenseId ?? this.recurringExpenseId,
+      paidTransactionId: paidTransactionId ?? this.paidTransactionId,
       note: note ?? this.note,
     );
   }
@@ -58,6 +62,7 @@ class MonthlyExpense {
       'amount': amount,
       'paymentDate': paymentDate?.toIso8601String(),
       'recurringExpenseId': recurringExpenseId,
+      'paidTransactionId': paidTransactionId,
       'note': note,
     };
   }
@@ -74,6 +79,7 @@ class MonthlyExpense {
           ? DateTime.parse(map['paymentDate'] as String)
           : null,
       recurringExpenseId: map['recurringExpenseId'] as String?,
+      paidTransactionId: map['paidTransactionId'] as String?,
       note: map['note'] as String?,
     );
   }
