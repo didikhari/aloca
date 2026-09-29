@@ -7,7 +7,9 @@ import '../../models/transaction.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/expense_provider.dart';
+import '../../providers/period_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
@@ -192,7 +194,11 @@ class _TransactionsListScreenState
                       itemBuilder: (context, index) {
                         final item = allItems[index];
                         if (item is Income) {
-                          return _buildIncomeItem(item);
+                          return _SlidableIncomeTile(
+                            key: ValueKey(item.id),
+                            income: item,
+                            onDelete: () => _confirmDeleteIncome(item),
+                          );
                         } else {
                           final tx = item as Transaction;
                           final catMatches =
@@ -211,6 +217,55 @@ class _TransactionsListScreenState
     );
   }
 
+  Future<void> _confirmDeleteIncome(Income income) async {
+    final activePeriodId = ref.read(activePeriodIdProvider);
+    final isCurrentPeriod = income.periodId == activePeriodId;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isCurrentPeriod
+            ? 'Hapus Pemasukan'
+            : 'Hapus Pemasukan Bulan Lalu'),
+        content: Text(
+          isCurrentPeriod
+              ? 'Apakah Anda yakin ingin menghapus pemasukan "${income.description}" sebesar ${CurrencyFormatter.format(income.amount)}?'
+              : 'Menghapus "${income.description}" sebesar ${CurrencyFormatter.format(income.amount)} dari periode sebelumnya (${income.periodId}) akan mengurangi Saldo Awal dan Total Tersedia bulan ini.\n\nApakah Anda yakin ingin melanjutkan koreksi ini?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.expenseRed,
+              foregroundColor: AppColors.textInverse,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isCurrentPeriod ? 'Hapus' : 'Hapus & Koreksi'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ref.read(incomeListProvider.notifier).deleteIncome(income.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isCurrentPeriod
+                  ? 'Pemasukan berhasil dihapus.'
+                  : 'Pemasukan bulan lalu berhasil dihapus dan saldo awal telah dikoreksi.',
+            ),
+            backgroundColor: AppColors.brandPrimary,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildTabChip(String label, int index) {
     final isSelected = _selectedFilterTab == index;
     return ChoiceChip(
@@ -224,82 +279,6 @@ class _TransactionsListScreenState
       onSelected: (selected) {
         if (selected) setState(() => _selectedFilterTab = index);
       },
-    );
-  }
-
-  Widget _buildIncomeItem(Income income) {
-    final formattedDate = DateFormat('d MMM yyyy', 'id_ID').format(income.date);
-
-    return CustomCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Column 1: Icon
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: AppColors.successBgLight,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.arrow_downward,
-              color: AppColors.incomeGreen,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-
-          // Content Block (Column 2 & 3 top row)
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Column 2: Nama & Jenis Pendapatan
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        income.description,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.headingSmall,
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Pendapatan',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.labelStandard,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-
-                // Column 3: Nominal Transaksi & Tanggal
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '+${CurrencyFormatter.format(income.amount)}',
-                      style: AppTypography.bodyPrimary.copyWith(
-                        color: AppColors.incomeGreen,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      formattedDate,
-                      style: AppTypography.labelStandard,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -406,6 +385,188 @@ class _TransactionsListScreenState
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SlidableIncomeTile extends StatefulWidget {
+  final Income income;
+  final VoidCallback onDelete;
+
+  const _SlidableIncomeTile({
+    super.key,
+    required this.income,
+    required this.onDelete,
+  });
+
+  @override
+  State<_SlidableIncomeTile> createState() => _SlidableIncomeTileState();
+}
+
+class _SlidableIncomeTileState extends State<_SlidableIncomeTile> {
+  double _dragOffset = 0.0;
+  static const double _actionWidth = 80.0;
+
+  void _close() {
+    if (mounted) setState(() => _dragOffset = 0);
+  }
+
+  void _open() {
+    if (mounted) setState(() => _dragOffset = -_actionWidth);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isRevealed = _dragOffset < -10;
+    final formattedDate =
+        DateFormat('d MMM yyyy', 'id_ID').format(widget.income.date);
+
+    return Stack(
+      children: [
+        // Background Red Delete Button
+        Positioned.fill(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              width: _actionWidth,
+              decoration: const BoxDecoration(
+                color: AppColors.expenseRed,
+                borderRadius: AppRadius.radiusCard,
+              ),
+              child: InkWell(
+                onTap: () {
+                  _close();
+                  widget.onDelete();
+                },
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      color: AppColors.textInverse,
+                      size: 22,
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Hapus',
+                      style: TextStyle(
+                        color: AppColors.textInverse,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Foreground Sliding Card
+        GestureDetector(
+          onHorizontalDragUpdate: (details) {
+            setState(() {
+              _dragOffset += details.primaryDelta!;
+              if (_dragOffset > 0) _dragOffset = 0;
+              if (_dragOffset < -_actionWidth) _dragOffset = -_actionWidth;
+            });
+          },
+          onHorizontalDragEnd: (details) {
+            if (details.primaryVelocity! < -200 ||
+                _dragOffset < -_actionWidth / 2) {
+              _open();
+            } else {
+              _close();
+            }
+          },
+          child: Transform.translate(
+            offset: Offset(_dragOffset, 0),
+            child: CustomCard(
+              onTap: () {
+                if (isRevealed) _close();
+              },
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Column 1: Icon
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      color: AppColors.successBgLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_downward,
+                      color: AppColors.incomeGreen,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+
+                  // Content Block (Column 2 & 3 top row)
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Column 2: Nama & Jenis Pendapatan
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.income.description,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.headingSmall,
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                'Pendapatan',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.labelStandard,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+
+                        // Column 3: Nominal Transaksi & Tanggal
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '+${CurrencyFormatter.format(widget.income.amount)}',
+                              style: AppTypography.bodyPrimary.copyWith(
+                                color: AppColors.incomeGreen,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              formattedDate,
+                              style: AppTypography.labelStandard,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  // Slidable affordance cue (Right grey drag handle indicator)
+                  Container(
+                    width: 4,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF94A3B8),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -544,6 +544,17 @@ class _SlidableCategoryTileState extends State<_SlidableCategoryTile>
                       size: 20,
                       color: AppColors.textMuted,
                     ),
+
+                    const SizedBox(width: AppSpacing.xs),
+                    // Slidable affordance cue (Right grey drag handle indicator)
+                    Container(
+                      width: 4,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF94A3B8),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ],
                 ),
               ),
