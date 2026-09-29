@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/database/hive_service.dart';
+import '../../models/allocation_template.dart';
 import '../../models/category.dart';
 import 'period_provider.dart';
 import 'income_provider.dart';
@@ -6,6 +8,7 @@ import 'expense_provider.dart';
 import 'allocation_provider.dart';
 import 'category_provider.dart';
 import 'planned_expense_provider.dart';
+import 'template_provider.dart';
 
 final isBalanceMaskedProvider =
     StateNotifierProvider<BalanceMaskNotifier, bool>((ref) {
@@ -77,8 +80,16 @@ final monthlySummaryProvider = Provider<MonthlySummary>((ref) {
   final allocations = ref.watch(allocationListProvider);
   final categories = ref.watch(categoryListProvider);
   final plannedExpenses = ref.watch(plannedExpenseListProvider);
+  final templates = ref.watch(templateListProvider);
 
   final activeCategories = categories.where((c) => c.isActive).toList();
+
+  final defaultTemplate = templates.isNotEmpty
+      ? templates.firstWhere((t) => t.isDefault, orElse: () => templates.first)
+      : null;
+  final defaultItems = defaultTemplate != null
+      ? HiveService.getTemplateItems(defaultTemplate.id)
+      : <AllocationTemplateItem>[];
 
   final openingBalance = period.openingBalance;
   final totalIncome = incomes.fold<int>(0, (sum, i) => sum + i.amount);
@@ -92,8 +103,11 @@ final monthlySummaryProvider = Provider<MonthlySummary>((ref) {
   for (final cat in activeCategories) {
     final matchingAlloc = allocations.where((a) => a.categoryId == cat.id);
     final catAlloc = matchingAlloc.isNotEmpty ? matchingAlloc.first : null;
-    final method = catAlloc?.method ?? 'percentage';
-    final val = catAlloc?.value ?? 0.0;
+    final tItem =
+        defaultItems.where((i) => i.categoryId == cat.id).firstOrNull;
+
+    final method = catAlloc?.method ?? tItem?.method ?? 'percentage';
+    final val = catAlloc?.value ?? tItem?.value ?? 0.0;
 
     int calculatedNominal = 0;
     if (method == 'percentage') {
@@ -117,7 +131,10 @@ final monthlySummaryProvider = Provider<MonthlySummary>((ref) {
   for (final cat in activeCategories) {
     final matchingAlloc = allocations.where((a) => a.categoryId == cat.id);
     final catAlloc = matchingAlloc.isNotEmpty ? matchingAlloc.first : null;
-    final method = catAlloc?.method ?? 'percentage';
+    final tItem =
+        defaultItems.where((i) => i.categoryId == cat.id).firstOrNull;
+
+    final method = catAlloc?.method ?? tItem?.method ?? 'percentage';
 
     if (method == 'remaining') {
       dynamicAllocations[cat.id] = remainingAvailable;

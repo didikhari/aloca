@@ -244,10 +244,10 @@ class _InitialSetupScreenState extends ConsumerState<InitialSetupScreen> {
       ));
     }
 
+    ref.read(activePeriodIdProvider.notifier).state = period.id;
     await ref
         .read(allocationListProvider.notifier)
         .saveAllocations(newAllocations);
-    ref.read(activePeriodIdProvider.notifier).state = period.id;
 
     if (mounted) {
       Navigator.pushReplacement(

@@ -73,7 +73,7 @@ class _MonthlyCategoryDetailState
                     ),
                   ),
                   Text(
-                    'Tambah Pengeluaran: ${widget.category.name}',
+                    'Tambah Transaksi: ${widget.category.name}',
                     style: AppTypography.headingMedium,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -81,7 +81,7 @@ class _MonthlyCategoryDetailState
                     controller: titleController,
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
-                      labelText: 'Nama Pengeluaran',
+                      labelText: 'Nama Transaksi',
                       hintText: 'Misal: Pulsa, Token Listrik, Belanja',
                       border: OutlineInputBorder(),
                     ),
@@ -390,7 +390,7 @@ class _MonthlyCategoryDetailState
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Pengeluaran'),
+        title: const Text('Hapus Transaksi'),
         content: Text('Apakah Anda yakin ingin menghapus "${item.title}"?'),
         actions: [
           TextButton(
@@ -441,14 +441,28 @@ class _MonthlyCategoryDetailState
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        title: Text(
-          widget.category.name,
+        title: const Text(
+          "Detail Kategori",
           style: AppTypography.headingLarge,
         ),
         backgroundColor: AppColors.surfaceWhite,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
       ),
+      floatingActionButton: categoryExpenses.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: _showAddExpenseBottomSheet,
+              backgroundColor: AppColors.brandPrimary,
+              foregroundColor: AppColors.textInverse,
+              icon: const Icon(Icons.add),
+              label: const Text(
+                'Tambah Transaksi',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -582,32 +596,10 @@ class _MonthlyCategoryDetailState
 
               const SizedBox(height: AppSpacing.md),
 
-              // Section Title & Add Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Daftar Pengeluaran',
-                      style: AppTypography.sectionTitle,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  TextButton.icon(
-                    onPressed: _showAddExpenseBottomSheet,
-                    icon: const Icon(Icons.add,
-                        size: 18, color: AppColors.brandPrimary),
-                    label: const Text(
-                      'Tambah Pengeluaran',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandPrimary,
-                      ),
-                    ),
-                  ),
-                ],
+              // Section Title
+              const Text(
+                'Daftar Transaksi',
+                style: AppTypography.sectionTitle,
               ),
 
               const SizedBox(height: AppSpacing.sm),
@@ -626,7 +618,7 @@ class _MonthlyCategoryDetailState
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             Text(
-                              'Belum ada pengeluaran untuk ${widget.category.name}.',
+                              'Belum ada transaksi untuk ${widget.category.name}.',
                               style: AppTypography.bodySecondary,
                               textAlign: TextAlign.center,
                             ),
@@ -634,7 +626,7 @@ class _MonthlyCategoryDetailState
                             OutlinedButton.icon(
                               onPressed: _showAddExpenseBottomSheet,
                               icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Tambah Pengeluaran'),
+                              label: const Text('Tambah Transaksi'),
                             ),
                           ],
                         ),
@@ -731,7 +723,7 @@ class _MonthlyCategoryDetailState
                   ListTile(
                     leading: const Icon(Icons.undo, color: AppColors.brandPrimary),
                     title: const Text('Batalkan Pembayaran'),
-                    subtitle: const Text('Ubah status pengeluaran kembali menjadi Belum Dibayar'),
+                    subtitle: const Text('Ubah status transaksi kembali menjadi Belum Dibayar'),
                     contentPadding: EdgeInsets.zero,
                     onTap: () {
                       Navigator.pop(ctx);
@@ -743,7 +735,7 @@ class _MonthlyCategoryDetailState
                 else
                   ListTile(
                     leading: const Icon(Icons.payment, color: AppColors.brandPrimary),
-                    title: const Text('Bayar Pengeluaran'),
+                    title: const Text('Bayar Transaksi'),
                     subtitle: const Text('Catat nominal dan tanggal pembayaran'),
                     contentPadding: EdgeInsets.zero,
                     onTap: () {
@@ -754,10 +746,10 @@ class _MonthlyCategoryDetailState
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: AppColors.expenseRed),
                   title: const Text(
-                    'Hapus Pengeluaran',
+                    'Hapus Transaksi',
                     style: TextStyle(color: AppColors.expenseRed),
                   ),
-                  subtitle: const Text('Hapus pengeluaran ini secara permanen'),
+                  subtitle: const Text('Hapus transaksi ini secara permanen'),
                   contentPadding: EdgeInsets.zero,
                   onTap: () {
                     Navigator.pop(ctx);

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../models/financial_period.dart';
+import '../../models/income.dart';
+import '../../providers/income_provider.dart';
 import '../../providers/period_provider.dart';
 import '../../providers/summary_provider.dart';
 import '../../theme/app_colors.dart';
@@ -10,8 +14,6 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/progress_bar.dart';
-import '../../widgets/status_badge.dart';
-import '../transaction/quick_add_transaction_screen.dart';
 import '../transaction/transactions_list_screen.dart';
 import '../settings/allocation_management_screen.dart';
 import '../settings/categories_screen.dart';
@@ -73,7 +75,7 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.lg),
 
               // Financial Position Summary Card
-              _buildSummaryCard(summary, ref),
+              _buildSummaryCard(summary, ref, context),
 
               const SizedBox(height: AppSpacing.lg),
 
@@ -183,19 +185,10 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ],
 
-              const SizedBox(height: 80),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.brandPrimary,
-        foregroundColor: AppColors.textInverse,
-        onPressed: () {
-          _showAddTransactionDialog(context);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Tambah Transaksi'),
       ),
     );
   }
@@ -277,7 +270,8 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(MonthlySummary summary, WidgetRef ref) {
+  Widget _buildSummaryCard(
+      MonthlySummary summary, WidgetRef ref, BuildContext context) {
     final isMasked = ref.watch(isBalanceMaskedProvider);
 
     return CustomCard(
@@ -289,8 +283,8 @@ class DashboardScreen extends ConsumerWidget {
           // Total Available Banner
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
                 colors: [AppColors.brandPrimary, AppColors.brandDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -324,17 +318,56 @@ class DashboardScreen extends ConsumerWidget {
                           ? 'Tampilkan Nominal'
                           : 'Sembunyikan Nominal',
                       onPressed: () {
-                        ref.read(isBalanceMaskedProvider.notifier).toggleMask();
+                        ref
+                            .read(isBalanceMaskedProvider.notifier)
+                            .toggleMask();
                       },
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Text(
-                  isMasked
-                      ? 'Rp ••••••••'
-                      : CurrencyFormatter.format(summary.totalAvailable),
-                  style: AppTypography.displaySmall,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isMasked
+                            ? 'Rp ••••••••'
+                            : CurrencyFormatter.format(summary.totalAvailable),
+                        style: AppTypography.displaySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    InkWell(
+                      onTap: () => _showAddIncomeBottomSheet(context, ref),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 16, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text(
+                              'Pemasukan',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -386,6 +419,200 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddIncomeBottomSheet(BuildContext context, WidgetRef ref) {
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.radiusSheet,
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            width: MediaQuery.of(ctx).size.width,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.dividerBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        decoration: const BoxDecoration(
+                          color: AppColors.successBgLight,
+                          borderRadius: AppRadius.radiusMd,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_downward,
+                          color: AppColors.incomeGreen,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      const Expanded(
+                        child: Text(
+                          'Tambah Pemasukan',
+                          style: AppTypography.headingMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: descriptionController,
+                    textCapitalization: TextCapitalization.sentences,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Sumber / Deskripsi Pemasukan',
+                      hintText: 'Misal: Gaji Bulan Ini, Bonus, Freelance',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [ThousandsSeparatorInputFormatter()],
+                    decoration: const InputDecoration(
+                      labelText: 'Nominal Pemasukan (Rp)',
+                      hintText: '0',
+                      prefixText: 'Rp ',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setSheetState(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Tanggal Pemasukan',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(DateFormat('dd MMMM yyyy', 'id_ID')
+                              .format(selectedDate)),
+                          const Icon(Icons.calendar_today, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.md),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: AppRadius.radiusLg,
+                            ),
+                          ),
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Batal'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.brandPrimary,
+                            foregroundColor: AppColors.textInverse,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.md),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: AppRadius.radiusLg,
+                            ),
+                            textStyle: AppTypography.buttonLarge,
+                          ),
+                          onPressed: () {
+                            final desc = descriptionController.text.trim();
+                            final amount = CurrencyFormatter.parse(
+                                amountController.text);
+
+                            if (amount > 0) {
+                              final activePeriodId =
+                                  ref.read(activePeriodIdProvider);
+                              const uuid = Uuid();
+                              final newIncome = Income(
+                                id: 'inc_${uuid.v4()}',
+                                periodId: activePeriodId,
+                                date: selectedDate,
+                                description: desc.isNotEmpty
+                                    ? desc
+                                    : 'Pendapatan Tambahan',
+                                amount: amount,
+                                type: 'Other',
+                              );
+
+                              ref
+                                  .read(incomeListProvider.notifier)
+                                  .addIncome(newIncome);
+
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Pemasukan ${CurrencyFormatter.format(amount)} berhasil ditambahkan!',
+                                  ),
+                                  backgroundColor: AppColors.brandPrimary,
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Simpan'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -450,11 +677,9 @@ class DashboardScreen extends ConsumerWidget {
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              'Total alokasi Anda melebihi dana tersedia sebesar ${CurrencyFormatter.format(overallocatedAmount)}! Harap sesuaikan alokasi.',
-              style: AppTypography.labelStandard.copyWith(
-                color: AppColors.expenseRedDark,
-                fontWeight: FontWeight.w600,
-              ),
+              'Total alokasi Anda melebihi dana tersedia sebesar ${CurrencyFormatter.format(overallocatedAmount)}.',
+              style: AppTypography.labelStandard
+                  .copyWith(color: AppColors.expenseRedDark),
             ),
           ),
         ],
@@ -463,16 +688,19 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildCategoryCard(CategoryBudgetStatus cs, BuildContext context) {
-    Color cardColor;
+    Color color;
     try {
-      final hex = cs.category.colorHex.replaceAll('#', '');
-      cardColor = Color(int.parse('FF$hex', radix: 16));
+      color = Color(int.parse(
+          'FF${cs.category.colorHex.replaceAll('#', '')}',
+          radix: 16));
     } catch (_) {
-      cardColor = AppColors.brandPrimary;
+      color = AppColors.brandPrimary;
     }
 
+    final isPaidFull = cs.paidItemsCount == cs.totalPlannedItems &&
+        cs.totalPlannedItems > 0;
+
     return CustomCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
       onTap: () {
         Navigator.push(
           context,
@@ -488,119 +716,114 @@ class DashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Row 1: Category Name, Status Badge, Chevron
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        cs.category.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySecondary.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              StatusBadge(status: cs.status),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          CustomProgressBar(
-            ratio: cs.usageRatio,
-            height: 6.0,
-            color:
-                cs.status == 'Over Budget' ? AppColors.expenseRed : cardColor,
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
               Expanded(
                 child: Text(
-                  'Terpakai: ${CurrencyFormatter.format(cs.actual)} / ${CurrencyFormatter.format(cs.allocated)}',
-                  maxLines: 1,
+                  cs.category.name,
+                  style: AppTypography.headingSmall,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.labelSmall,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Sisa: ${CurrencyFormatter.format(cs.remaining)}',
-                style: AppTypography.labelSmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: cs.remaining >= 0
-                      ? AppColors.incomeGreen
-                      : AppColors.expenseRed,
+              if (cs.totalPlannedItems > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isPaidFull
+                        ? AppColors.successBgLight
+                        : AppColors.warningBadgeBg,
+                    borderRadius: AppRadius.radiusLg,
+                  ),
+                  child: Text(
+                    '${cs.paidItemsCount}/${cs.totalPlannedItems} Lunas',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isPaidFull
+                          ? const Color(0xFF166534)
+                          : const Color(0xFF92400E),
+                    ),
+                  ),
                 ),
+              const SizedBox(width: AppSpacing.xs),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.textMuted,
               ),
             ],
           ),
-          if (cs.totalPlannedItems > 0) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: cs.paidItemsCount == cs.totalPlannedItems
-                    ? AppColors.paidTileBg
-                    : AppColors.warningBgLight,
-                borderRadius: AppRadius.radiusSm,
-                border: Border.all(
-                  color: cs.paidItemsCount == cs.totalPlannedItems
-                      ? const Color(0xFFBBF7D0)
-                      : const Color(0xFFFDE68A),
-                ),
-              ),
-              child: Row(
+
+          const SizedBox(height: AppSpacing.md),
+
+          // Row 2: Progress Bar
+          CustomProgressBar(
+            ratio: cs.allocated > 0 ? cs.actual / cs.allocated : 0,
+            color: cs.actual > cs.allocated
+                ? AppColors.expenseRed
+                : AppColors.brandPrimary,
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // Row 3: Financial Figures
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    cs.paidItemsCount == cs.totalPlannedItems
-                        ? Icons.check_circle_outline
-                        : Icons.pending_actions_outlined,
-                    size: 14,
-                    color: cs.paidItemsCount == cs.totalPlannedItems
-                        ? const Color(0xFF166534)
-                        : AppColors.warningAmberDark,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Rencana: ${cs.paidItemsCount}/${cs.totalPlannedItems} Lunas (${CurrencyFormatter.format(cs.totalPlannedAmount)})',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: cs.paidItemsCount == cs.totalPlannedItems
-                            ? const Color(0xFF166534)
-                            : AppColors.warningAmberDark,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 14,
-                    color: AppColors.textMuted,
+                  const Text('Alokasi', style: AppTypography.labelSmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    CurrencyFormatter.format(cs.allocated),
+                    style: AppTypography.labelStandard,
                   ),
                 ],
               ),
-            ),
-          ],
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Terpakai', style: AppTypography.labelSmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    CurrencyFormatter.format(cs.actual),
+                    style: AppTypography.labelStandard
+                        .copyWith(color: AppColors.expenseRed),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('Sisa Anggaran',
+                      style: AppTypography.labelSmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    CurrencyFormatter.format(cs.remaining),
+                    style: AppTypography.labelStandard.copyWith(
+                      color: cs.remaining >= 0
+                          ? AppColors.brandPrimary
+                          : AppColors.expenseRed,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -698,15 +921,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showAddTransactionDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const QuickAddTransactionScreen(),
     );
   }
 }

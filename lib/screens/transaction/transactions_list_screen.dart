@@ -228,22 +228,33 @@ class _TransactionsListScreenState
   }
 
   Widget _buildIncomeItem(Income income) {
+    final formattedDate = DateFormat('d MMM yyyy', 'id_ID').format(income.date);
+
     return CustomCard(
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Column 1: Icon
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: AppColors.successBgLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_downward,
+              color: AppColors.incomeGreen,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+
+          // Content Block (Column 2 & 3 top row)
           Expanded(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: AppColors.successBgLight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_downward,
-                      color: AppColors.incomeGreen, size: 20),
-                ),
-                const SizedBox(width: AppSpacing.md),
+                // Column 2: Nama & Jenis Pendapatan
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,8 +266,8 @@ class _TransactionsListScreenState
                         style: AppTypography.headingSmall,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        'Pendapatan • ${DateFormat('d MMM yyyy', 'id_ID').format(income.date)}',
+                      const Text(
+                        'Pendapatan',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.labelStandard,
@@ -264,23 +275,28 @@ class _TransactionsListScreenState
                     ],
                   ),
                 ),
+                const SizedBox(width: AppSpacing.sm),
+
+                // Column 3: Nominal Transaksi & Tanggal
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '+${CurrencyFormatter.format(income.amount)}',
+                      style: AppTypography.bodyPrimary.copyWith(
+                        color: AppColors.incomeGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      formattedDate,
+                      style: AppTypography.labelStandard,
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            '+${CurrencyFormatter.format(income.amount)}',
-            style: AppTypography.bodyPrimary.copyWith(
-              color: AppColors.incomeGreen,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline,
-                color: AppColors.textMuted, size: 18),
-            onPressed: () {
-              ref.read(incomeListProvider.notifier).deleteIncome(income.id);
-            },
           ),
         ],
       ),
@@ -288,61 +304,105 @@ class _TransactionsListScreenState
   }
 
   Widget _buildExpenseItem(Transaction tx, String categoryName) {
+    String title = tx.description;
+    String? note = tx.note;
+
+    // Backward compatibility for legacy transactions where note was merged into description with parentheses: "Title (Note)"
+    if ((note == null || note.trim().isEmpty) && title.contains('(') && title.endsWith(')')) {
+      final openParenIndex = title.lastIndexOf('(');
+      if (openParenIndex > 0) {
+        note = title.substring(openParenIndex + 1, title.length - 1).trim();
+        title = title.substring(0, openParenIndex).trim();
+      }
+    }
+
+    final hasNote = note != null && note.trim().isNotEmpty;
+    final formattedDate = DateFormat('d MMM yyyy', 'id_ID').format(tx.date);
+
     return CustomCard(
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Column 1: Icon (merged next to top row and dedicated note row)
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: AppColors.expenseBgLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_upward,
+              color: AppColors.expenseRed,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+
+          // Content Block (Column 2 & 3 top row, Note bottom row)
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: AppColors.expenseBgLight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_upward,
-                      color: AppColors.expenseRed, size: 20),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tx.description,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.headingSmall,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Column 2: Nama Pengeluaran & Kategori
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.headingSmall,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            categoryName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.labelStandard,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$categoryName • ${DateFormat('d MMM yyyy', 'id_ID').format(tx.date)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.labelStandard,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+
+                    // Column 3: Nominal Transaksi & Tanggal
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '-${CurrencyFormatter.format(tx.amount)}',
+                          style: AppTypography.bodyPrimary.copyWith(
+                            color: AppColors.expenseRed,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          formattedDate,
+                          style: AppTypography.labelStandard,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+
+                // Dedicated row for description/note if exists
+                if (hasNote) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    note,
+                    style: AppTypography.bodySecondary.copyWith(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
               ],
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            '-${CurrencyFormatter.format(tx.amount)}',
-            style: AppTypography.bodyPrimary.copyWith(
-              color: AppColors.expenseRed,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline,
-                color: AppColors.textMuted, size: 18),
-            onPressed: () {
-              ref
-                  .read(transactionListProvider.notifier)
-                  .deleteTransaction(tx.id);
-            },
           ),
         ],
       ),

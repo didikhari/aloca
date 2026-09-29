@@ -63,10 +63,11 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
         id: txId,
         periodId: activePeriodId,
         date: paymentDate ?? DateTime.now(),
-        description: noteText != null ? '$title ($noteText)' : title,
+        description: title,
         categoryId: categoryId,
         amount: amount,
         type: 'Expense',
+        note: noteText,
       );
       await ref.read(transactionListProvider.notifier).addTransaction(newTx);
     }
@@ -116,10 +117,11 @@ class PlannedExpenseListNotifier extends StateNotifier<List<MonthlyExpense>> {
       id: 'tx_${const Uuid().v4()}',
       periodId: activePeriodId,
       date: now,
-      description: noteText != null ? '${item.title} ($noteText)' : item.title,
+      description: item.title,
       categoryId: item.categoryId,
       amount: actualPaidAmount,
       type: 'Expense',
+      note: noteText,
     );
 
     final updatedItem = item.copyWith(
